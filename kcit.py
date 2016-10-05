@@ -36,8 +36,29 @@ ROD_X_L = 165.0
 ROD_Y_L = 550.0
 
 # This is the space between the end of rod X and the center of rod Y
-ROD_X2Y = kcomp.LMEUU_BEARING_D[ROD_Di]/2.0 + 4
+ROD_X2Y = kcomp.LMEUU_D[ROD_Di]/2.0 + 4
 # separation between the centers of the Y rods (the long ones)
 ROD_Y_SEP = ROD_X_L + 2 * ROD_X2Y
+
+# Microscope slides (portas) dimensions:
+PORTA_L = 75.0
+PORTA_W = 25.0
+PORTA_H = 1.0 #actually, from 0.9 to 1.1
+
+# Number of Portas:
+N_PORTA = 8
+
+# separation between 2 portas, and from the porta to the end of the base
+PORTAS_SEP = 5
+
+# Porta's base
+
+PORTABASE_L = (N_PORTA * PORTA_W) + (N_PORTA + 1) * PORTAS_SEP
+PORTABASE_W = PORTA_L + 2 * PORTAS_SEP
+PORTABASE_H = 4 
+
+
+
+
 
 

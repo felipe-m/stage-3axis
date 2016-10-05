@@ -12,6 +12,7 @@ filename = "base"
 import os
 import sys
 import FreeCAD;
+import FreeCADGui;
 import Part;
 import Draft;
 import logging  # to avoid using print statements
@@ -26,6 +27,7 @@ filepath = os.getcwd()
 #filepath = "F/urjc/proyectos/2016_platform_cell/device/planos/python/"
 #filepath = "C:/Users/felipe/urjc/proyectos/2016_platform_cell/device/planos/python/"
 
+
 # to get the components
 # In FreeCAD can be added: Preferences->General->Macro->Macro path
 sys.path.append(filepath) 
@@ -33,6 +35,9 @@ sys.path.append(filepath)
 # git subtree, or in its one place
 #sys.path.append(filepath + '/' + 'modules/comps'
 sys.path.append(filepath + '/' + '../comps')
+
+# where the freecad document is going to be saved
+savepath = filepath + "/../../freecad/citometro/py/"
 
 import fcfun   # import my functions for freecad. FreeCad Functions
 import kcit    # import citometer constants
@@ -65,126 +70,239 @@ logging.basicConfig(level=logging.DEBUG,
 
 doc = FreeCAD.newDocument()
 
-"""
-alumprof30_nam = ("misumi_profile_hfs_serie6_w8_30x30.FCStd")
-doc_alumprof = FreeCAD.openDocument(alumprof30_nam)
+Gui.ActiveDocument = Gui.getDocument(doc.Label)
+guidoc = Gui.getDocument(doc.Label)
 
 
-list_obj_alumprofile = []
-for obj in doc_alumprof.Objects:
-    if (hasattr(obj,'ViewObject') and obj.ViewObject.isVisible()
-        and hasattr(obj,'Shape') and len(obj.Shape.Faces) > 0 ):
-       # len(obj.Shape.Faces) > 0 to avoid sketches
-        list_obj_alumprofile.append(obj)
-    if len(obj.Shape.Faces) == 0:
-        orig_alumsk = obj
-logging.debug("%s", list_obj_alumprofile)
-
-FreeCAD.ActiveDocument = doc
-alu_sk = doc.addObject("Sketcher::SketchObject", "alu_sk")
-alu_sk.Geometry = orig_alumsk.Geometry
-alu_sk.Constraints = orig_alumsk.Constraints
-#alu_sk.Visibility = False
-#alu_sk.Placement.Base = FreeCAD.Vector( kcit.ALU_W/2.0,  kcit.ALU_W/2.0, 0)
-
-FreeCAD.closeDocument(doc_alumprof.Name)
-FreeCAD.ActiveDocument = doc #otherwise, clone will not work
-"""
-"""
 
 # Aluminum profiles for the citometer base
 
 #  ------------- X alum profiles
 # fb: front (y=0) bottom (z=0)
-"""
 h_alu_x_fb = comps.MisumiAlu30s6w8 (kcit.CIT_X -2 * kcit.ALU_W,
-                                  "alu_x_fb", axis= 'x', cx=1, cy=1, cz=0)
+                                    "alu_x_fb", axis= 'x', cx=1, cy=1, cz=0)
 alu_x_fb = h_alu_x_fb.CadObj
-"""
-alu_x_fb.Dir = (0,0,kcit.CIT_X - 2 * kcit.ALU_W)
-alu_x_fb.Solid = True
-
-# the base position of the X aluminum extrusion. 
-alu_x_basepos =  FreeCAD.Vector ( -(alu_x_fb.Dir.Length)/2.0,
-                                    kcit.ALU_W/2.0,
-                                    kcit.ALU_W/2.0)
-alu_x_fb.Placement.Base = alu_x_basepos
-alu_x_fb.Placement.Rotation = FreeCAD.Rotation (VY, 90)
-"""
 
 # bb: back (y=0) bottom (z=0)
 alu_x_bb = Draft.clone(alu_x_fb)
 alu_x_bb.Label = "alu_x_bb"
-alu_x_bb.Placement.Base = ( FreeCAD.Vector ( 0, kcit.CIT_Y - kcit.ALU_W,0)) 
+alu_x_bb.Placement.Base = (FreeCAD.Vector( 0, kcit.CIT_Y - kcit.ALU_W,0)) 
+
+# Temporary middle aluminun profile
+# Now I have a ROD_Y of 550 mm (ROD_Y_L), so I need to make the Y length
+# smaller. The availabe length of the rod from the center of the alum profile
+# is  ROD_Y_L - TotD - 2.   # (TotD/ 2) * 2 (each side) and then about 1mm 
+#  standing out
+
+# bm: bottom, middle
+
+# shaft outside of the shaft holder, just 1 mm
+shaft_y_out = 1
+# the length of the shaft that is off the shaft holder center (SK)
+shaft_y_off =  kcomp.SK12['L']/2.0 + shaft_y_out 
+alu_x_bm_ypos = (   (kcit.CIT_Y - kcit.ALU_W)
+                  - (kcit.ROD_Y_L - 2 * (shaft_y_off)))
+
+alu_x_bm = Draft.clone(alu_x_fb)
+alu_x_bm.Label = "alu_x_bmid"
+alu_x_bm.Placement.Base = ( FreeCAD.Vector ( 0, alu_x_bm_ypos,0)) 
+
 """
+
+   ____________
+      _____
+     |     |   
+     |_____|     
+   ____________    
+
+"""
+
 
 #  ------------- Y alum profiles
 # lb: left (x=-) bottom (z=0)
-alu_y_lb = doc.addObject("Part::Extrusion", "alu_y_lb")
-alu_y_lb.Base = alu_sk
-# the sketch is on XY, extrusion direction on Z. Centered on XY
-# substracting the width of the aluminum profile
-alu_y_lb.Dir = (0,0,kcit.CIT_Y - kcit.ALU_W)
-alu_y_lb.Solid = True
 
-# the base position of the Y aluminum extrusion (centered on X)
-alu_y_basepos =  FreeCAD.Vector ( 0, 0,
-                                  kcit.ALU_W/2.0)
-# the position to the right end. taking away half of the aluminum extrusion
-# width. So relative to the center, but since the aluminum extrusion is also
-# centered, it is its position
-alu_y_xendpos = FreeCAD.Vector(kcit.CIT_X/2.0 - kcit.ALU_W/2.0, 0, 0)
+h_alu_y_lb = comps.MisumiAlu30s6w8 (kcit.CIT_Y -  kcit.ALU_W,
+                                    "alu_y_fb", axis= 'y', cx=1, cy=0, cz=0)
+alu_y_lb = h_alu_y_lb.CadObj
+alu_y_lb.Placement.Base = FreeCAD.Vector(-(kcit.CIT_X/2.0 -kcit.ALU_W/2.0),
+                                         -kcit.ALU_W/2.0,
+                                         0)
 
-alu_y_lb.Placement.Base = alu_y_basepos - alu_y_xendpos
-alu_y_lb.Placement.Rotation = FreeCAD.Rotation (VX, -90)
-
-# rb: right (x=-) bottom (z=0)
+# rb: right (x=+) bottom (z=0)
 alu_y_rb = Draft.clone(alu_y_lb)
 alu_y_rb.Label = "alu_y_rb"
-alu_y_lb.Placement.Base = alu_y_basepos + alu_y_xendpos
-alu_y_lb.Placement.Rotation = FreeCAD.Rotation (VX, -90)
-"""
+alu_y_rb.Placement.Base = FreeCAD.Vector( kcit.CIT_X/2.0 -kcit.ALU_W/2.0,
+                                         -kcit.ALU_W/2.0,
+                                         0)
+
 
 # ------------------ Shaft holders SK12 ------------------------------
-# f= f; r: right. hole_x = 0 -> hole facing Y axis
+# f= front; r: right. hole_x = 0 -> hole facing Y axis
 h_sk12_fr = comps.Sk(size=12, name="sk12_fr", hole_x = 0, cx=1, cy=1)
 sk12_fr = h_sk12_fr.CadObj
 # ROD_Y_SEP is the separation of the Y RODs
 sk12_fr.Placement.Base = FreeCAD.Vector (kcit.ROD_Y_SEP/2.0,
-                                         kcit.ALU_W/2.0,
+                                         alu_x_bm_ypos, # 0
                                          kcit.ALU_W)
 # f= front; l: left
 sk12_fl = Draft.clone(sk12_fr)
 sk12_fl.Label = "sk12_fl"
 sk12_fl.Placement.Base = FreeCAD.Vector (-kcit.ROD_Y_SEP/2.0,
-                                          kcit.ALU_W/2.0,
+                                          alu_x_bm_ypos, # 0
                                           kcit.ALU_W)
-#alu_y_lb.Placement.Base = alu_y_basepos + alu_y_xendpos
 
-#sk12_fl = comps.Sk(size=12, name="sk12_000", hole_x = 0, cx=0, cy=0)
+# b= back; r: right
+sk12_br = Draft.clone(sk12_fr)
+sk12_br.Label = "sk12_br"
+sk12_br.Placement.Base = FreeCAD.Vector ( kcit.ROD_Y_SEP/2.0,
+                                          kcit.CIT_Y - kcit.ALU_W,
+                                          kcit.ALU_W)
+
 # b= back; l: left
-#sk12_bl = comps.Sk(size=12, name="sk12_000", hole_x = 0, cx=0, cy=0)
+sk12_bl = Draft.clone(sk12_fr)
+sk12_bl.Label = "sk12_bl"
+sk12_bl.Placement.Base = FreeCAD.Vector (-kcit.ROD_Y_SEP/2.0,
+                                          kcit.CIT_Y - kcit.ALU_W,
+                                          kcit.ALU_W)
 
-# the shaft support on the left back
-"""
-sk12_000 = comps.Sk(size=12, name="sk12_000", hole_x = 0, cx=0, cy=0)
-sk12_001 = comps.Sk(size=12, name="sk12_001", hole_x = 0,  cx=0, cy=1)
-sk12_100 = comps.Sk(size=12, name="sk12_100", hole_x = 1,  cx=0, cy=0)
-sk12_101 = comps.Sk(size=12, name="sk12_101", hole_x = 1,  cx=0, cy=1)
-sk12_110 = comps.Sk(size=12, name="sk12_110", hole_x = 1,  cx=1, cy=0)
-sk12_111 = comps.Sk(size=12, name="sk12_111", hole_x = 1,  cx=1, cy=1)
-mi = comps.MisumiAlu30s6w8 (30, "x_000", axis= 'x')
-mi = comps.MisumiAlu30s6w8 (30, "y_000", axis= 'y')
-mi = comps.MisumiAlu30s6w8 (30, "z_000", axis= 'z')
-mi = comps.MisumiAlu30s6w8 (30, "x_111", axis= 'x', cx=1, cy=1, cz=1)
-mi = comps.MisumiAlu30s6w8 (30, "y_111", axis= 'y', cx=1, cy=1, cz=1)
-mi = comps.MisumiAlu30s6w8 (30, "z_111", axis= 'z', cx=1, cy=1, cz=1)
-mi = comps.MisumiAlu30s6w8 (30, "x_110", axis= 'x', cx=1, cy=1, cz=0)
-mi = comps.MisumiAlu30s6w8 (30, "y_101", axis= 'y', cx=1, cy=0, cz=1)
-mi = comps.MisumiAlu30s6w8 (30, "z_011", axis= 'z', cx=0, cy=1, cz=1)
-"""
+# ------------------ Y Shafts --------------------------------------
+# shaft_y_off is defined abover
+
+# the length of the shaft inside the shaft holders
+shaft_y_use = 2*shaft_y_off + kcomp.SK12['L']
+
+# the height of the Y shaft
+shaft_y_pos_h = sk12_fr.Placement.Base.z + h_sk12_fr.HoleH
+
+shaft_y_l = addCyl(r= kcit.ROD_D/2.0, h=kcit.ROD_Y_L, name= "shaft_y_l")
+shaft_y_l.Placement.Base = FreeCAD.Vector (-kcit.ROD_Y_SEP/2.0,
+                                            alu_x_bm_ypos - shaft_y_off,
+                                            shaft_y_pos_h)
+shaft_y_l.Placement.Rotation = FreeCAD.Rotation (VX,-90)
+                                            
+shaft_y_r = addCyl(r= kcit.ROD_D/2.0, h=kcit.ROD_Y_L, name= "shaft_y_r")
+shaft_y_r.Placement.Base = FreeCAD.Vector ( kcit.ROD_Y_SEP/2.0,
+                                            alu_x_bm_ypos - shaft_y_off,
+                                            shaft_y_pos_h)
+shaft_y_r.Placement.Rotation = FreeCAD.Rotation (VX,-90)
+                                            
+                                            
+# ------------------ Base of the portas ----------------------------
+
+portabase = addBox (x = kcit.PORTABASE_W,
+                    y = kcit.PORTABASE_L,
+                    z = kcit.PORTABASE_H,
+                    name = "portabase",
+                    cx = 1, cy= 0)
+
+portabase_pos_y = (   kcit.CIT_Y 
+                    - (1.5 * kcit.ALU_W)
+                    - portabase.Width.Value)
+
+portabase.Placement.Base.y = portabase_pos_y
+
+portahold_box = addBox (x = portabase.Length,
+                        y = portabase.Width,
+                        z = kcit.PORTA_H,
+                        name = "portahold_box",
+                        cx = 1, cy= 0)
+
+portahold_box.Placement.Base.z = portabase.Height
+
+
+portahole_list = []
+for i in xrange(kcit.N_PORTA):
+    portahole_i = addBox (x = kcit.PORTA_L + TOL,
+                        y = kcit.PORTA_W + TOL,
+                        z = kcit.PORTA_H + 2,  # +2 to cut
+                        name = "portahole_" + str(i),
+                        cx = 1, cy= 0)
+    portahole_pos_y =  (i+1)*kcit.PORTAS_SEP + i *kcit.PORTA_W - TOL/2.0
+    # portabase.Height is a quantity, so cannot be added to a value.
+    # so I have to take its value
+    portahole_pos = FreeCAD.Vector(0,
+                                   portahole_pos_y,
+                                   portabase.Height.Value - 1) 
+    # add its position to make it relative
+    portahole_i.Placement.Base = portahole_pos + portahole_i.Placement.Base
+    portahole_list.append(portahole_i)
+
+# Union of all the portaholes:
+portahold_holes = doc.addObject("Part::MultiFuse", "portahold_holes")
+portahold_holes.Shapes = portahole_list
+
+# Cut the holes from portahold_box
+portahold = doc.addObject("Part::Cut", "portahold")
+portahold.Base = portahold_box
+portahold.Tool = portahold_holes
+
+portahold.Placement.Base.y = portabase_pos_y
+
 
 doc.recompute()
+# this changes the color, but doesn't show it on the gui
+portahold.ViewObject.ShapeColor = fcfun.RED
+"""
+guidoc.getObject(portahold.Label).ShapeColor = fcfun.BLACK
+guidoc.portahold.ShapeColor = fcfun.RED
+guidoc.portahold.ShapeColor = fcfun.RED
+"""
+
+"""
+lm_bearing = fcfun.addCylHole (r_ext = kcomp.LMEUU_D[kcit.ROD_Di]/2.0,
+                               r_int = kcit.ROD_D/2.0,
+                               h= kcomp.LMEUU_L[kcit.ROD_Di],
+                               name = "lm" + str(kcit.ROD_Di) + "uu",
+                               axis = 'y',
+                               h_disp = -kcomp.LMEUU_L[kcit.ROD_Di]/2)
+
+lm_bearing = fcfun.addCylHole (r_ext = kcomp.LMEUU_D[kcit.ROD_Di]/2.0,
+                               r_int = kcit.ROD_D/2.0,
+                               h= kcomp.LMEUU_L[kcit.ROD_Di],
+                               name = "lm" + str(kcit.ROD_Di) + "uu",
+                               axis = 'x',
+                               h_disp = 0)
+
+lm_bearing = fcfun.addCylHole (r_ext = kcomp.LMEUU_D[kcit.ROD_Di]/2.0,
+                               r_int = kcit.ROD_D/2.0,
+                               h= kcomp.LMEUU_L[kcit.ROD_Di],
+                               name = "lm" + str(kcit.ROD_Di) + "uu",
+                               axis = 'z',
+                               h_disp = TOL)
+"""
+
+h_lmuu = comps.LinBearing (r_ext = kcomp.LMEUU_D[kcit.ROD_Di]/2.0,
+                         r_int = kcit.ROD_D/2.0,
+                         h= kcomp.LMEUU_L[kcit.ROD_Di],
+                         name = "lm" + str(kcit.ROD_Di) + "uu",
+                         axis = 'y',
+                         h_disp = -kcomp.LMEUU_L[kcit.ROD_Di]/2,
+                         r_tol  = TOL,
+                         h_tol  = 2.0)
+
+h_lmuu.BasePlace ((kcit.ROD_Y_SEP/2.0, portabase_pos_y, shaft_y_pos_h))
+
+h_lmuu = comps.LinBearingClone(h_lmuu, "bl", namadd=1)
+
+h_lmuu.BasePlace ((-kcit.ROD_Y_SEP/2.0, portabase_pos_y, shaft_y_pos_h))
+
+doc.recompute()
+
+
+
+
+# otherwise I have problems with Gui.ActiveDocument
+"""
+doc = FreeCAD.ActiveDocument
+guidoc = Gui.getDocument(doc.Label)
+"""
+guidoc.ActiveView.setAxisCross(True)
+"""
+Gui.ActiveDocument = Gui.getDocument(doc.Label)
+Gui.ActiveDocument.ActiveView.setAxisCross(True)
+"""
+
+doc.saveAs (savepath + filename + ".FCStd")
 
 
 

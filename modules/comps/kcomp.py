@@ -11,8 +11,13 @@ STOL = TOL / 2.0       # smaller tolerance
 LAYER3D_H = 0.3  
 
 # ---------------------- Bearings
+<<<<<<< HEAD
 LMEUU_BEARING_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
 LMEUU_BEARING_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
+=======
+LMEUU_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
+LMEUU_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
+>>>>>>> comps/master
 
 
 
