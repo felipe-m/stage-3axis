@@ -1,12 +1,53 @@
+<<<<<<< HEAD
 # My functions for FreeCad (mfc)
 
 import FreeCAD;
 import Part;
+=======
+# ----------------------------------------------------------------------------
+# -- FreeCad Functions
+# -- comps library
+# -- Python functions for FreeCAD
+# ----------------------------------------------------------------------------
+# -- (c) Felipe Machado
+# -- Area of Electronics. Rey Juan Carlos University (urjc.es)
+# -- October-2016
+# ----------------------------------------------------------------------------
+# --- LGPL Licence
+# ----------------------------------------------------------------------------
+
+import FreeCAD;
+import Part;
+import math;
+import logging;
+import DraftVecUtils;
+
+from FreeCAD import Base
+
+# ---------------------- can be taken away after debugging
+import os;
+import sys;
+# directory this file is
+filepath = os.getcwd()
+import sys
+# to get the components
+# In FreeCAD can be added: Preferences->General->Macro->Macro path
+sys.path.append(filepath)
+# ---------------------- can be taken away after debugging
+
+>>>>>>> comps/master
 
 import kcomp # before was mat_cte
 
 from kcomp import LAYER3D_H
 
+<<<<<<< HEAD
+=======
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+>>>>>>> comps/master
 # vector constants
 V0 = FreeCAD.Vector(0,0,0)
 VX = FreeCAD.Vector(1,0,0)
@@ -14,20 +55,38 @@ VY = FreeCAD.Vector(0,1,0)
 VZ = FreeCAD.Vector(0,0,1)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> comps/master
 # color constants
 WHITE  = (1.0, 1.0, 1.0)
 BLACK  = (0.0, 0.0, 0.0)
 
 RED    = (1.0, 0.0, 0.0)
 GREEN  = (0.0, 1.0, 0.0)
+<<<<<<< HEAD
 BLUE   = (0.0, 1.0, 1.0)
+=======
+BLUE   = (0.0, 0.0, 1.0)
+>>>>>>> comps/master
 
 YELLOW = (1.0, 1.0, 0.0)
 MAGENT = (1.0, 0.0, 1.0)
 CIAN   = (0.0, 1.0, 1.0)
 
 ORANGE = (1.0, 0.5, 0.0)
+
+<<<<<<< HEAD
+>>>>>>> comps/master
+=======
+RED_05    = (1.0, 0.5, 0.5)
+GREEN_05  = (0.5, 1.0, 0.5)
+BLUE_05   = (0.5, 0.5, 1.0)
+
+YELLOW_05 = (1.0, 1.0, 0.5)
+MAGENT_05 = (1.0, 0.5, 1.0)
+CIAN_05   = (0.5, 1.0, 1.0)
 
 >>>>>>> comps/master
 # no rotation vector
@@ -51,6 +110,53 @@ def addBox(x, y, z, name, cx= False, cy=False):
     box.Placement.Base =FreeCAD.Vector(xpos,ypos,0)
     return box
 
+<<<<<<< HEAD
+=======
+
+# adds a box, centered on the specified axis, with its
+# Placement and Rotation at zero. So it can be referenced absolutely from
+# its given position
+
+def addBox_cen(x, y, z, name, cx= False, cy=False, cz=False):
+    # we have to bring the active document
+    doc = FreeCAD.ActiveDocument
+
+    if cx == True:
+        x0 = -x/2.0
+        x1 =  x/2.0
+    else:
+        x0 =  0
+        x1 =  x
+    if cy == True:
+        y0 = -y/2.0
+        y1 =  y/2.0
+    else:
+        y0 =  0
+        y1 =  y
+    if cz == True:
+        z0 = - z/2.0
+    else:
+        z0 = 0
+
+    p00 = FreeCAD.Vector (x0,y0,z0)
+    p10 = FreeCAD.Vector (x1,y0,z0)
+    p11 = FreeCAD.Vector (x1,y1,z0)
+    p01 = FreeCAD.Vector (x0,y1,z0)
+    sq_list = [p00, p10, p11, p01]
+    square =  doc.addObject("Part::Polygon",name + "_sq")
+    square.Nodes =sq_list
+    square.Close = True
+    square.ViewObject.Visibility = False
+    box = doc.addObject ("Part::Extrusion", name)
+    box.Base = square
+    box.Dir = (0,0, z)
+    box.Solid = True
+    # we need to recompute if we want to do operations on this object
+    doc.recompute()
+    
+    return box
+
+>>>>>>> comps/master
 # Add cylinder r: radius, h: height 
 def addCyl (r, h, name):
     # we have to bring the active document
@@ -61,7 +167,10 @@ def addCyl (r, h, name):
     return cyl
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> comps/master
 # Add cylinder in a position. So it is in a certain position, with its
 # Placement and Rotation at zero. So it can be referenced absolutely from
 # its given position
@@ -148,6 +257,289 @@ def addCylHole (r_ext, r_int, h, name, axis = 'z', h_disp = 0):
     cylHole.Tool = cyl_int
 
     return cylHole
+
+<<<<<<< HEAD
+>>>>>>> comps/master
+=======
+
+# same as addCylHole, but avoiding the creation of many FreeCAD objects
+# Add cylinder, with inner hole:
+#     r_out: outside radius,
+#     r_in : inside radius,
+#     h: height 
+#     name 
+#     normal: FreeCAD.Vector pointing to the normal (if its module is not one,
+#             the height will be larger than h
+#     pos: position of the cylinder
+
+def addCylHolePos (r_out, r_in, h, name, normal = VZ, pos = V0):
+    # we have to bring the active document
+    doc = FreeCAD.ActiveDocument
+
+    cir_out =  Part.makeCircle (r_out,   # Radius
+                                pos,     # Position
+                                normal)  # direction
+    cir_in =  Part.makeCircle (r_in,   # Radius
+                                pos,     # Position
+                                normal)  # direction
+
+    #print "in: %", cir_in.Curve
+    #print "out: %", cir_out.Curve
+
+    wire_cir_out = Part.Wire(cir_out)
+    wire_cir_in  = Part.Wire(cir_in)
+    face_cir_out = Part.Face(wire_cir_out)
+    face_cir_in  = Part.Face(wire_cir_in)
+
+    face_cir_hole = face_cir_out.cut(face_cir_in)
+    dir_extrus = DraftVecUtils.scaleTo(normal, h)
+    shp_cyl_hole = face_cir_hole.extrude(dir_extrus)
+
+    cyl_hole = doc.addObject("Part::Feature", name)
+    cyl_hole.Shape = shp_cyl_hole
+
+    return cyl_hole
+
+# ------------------- def shpRndRectWire
+# Creates a wire (shape), that is a rectangle with rounded edges.
+# if r== 0, it will be a rectangle
+# x: dimension of the base, on the X axis
+# y: dimension of the height, on the Y axis
+# r: radius of the rouned edge. 
+# The wire will be centered
+#
+#                   Y
+#                   |_ X
+#               
+#       ______     ___ y
+#      /      \ r
+#      |      |
+#      |      |              z=0
+#      |      |
+#      \______/    ___
+#      
+#      |_______| x
+
+
+def shpRndRectWire (x=1, y=1, r= 0.5, zpos = 0):
+
+    #doc = FreeCAD.ActiveDocument
+
+    if 2*r >= x or 2*r >= y:
+        print "Radius too large: addRoundRectan"
+        if x > y:
+            r = y/2.0 - 0.1 # otherwise there will be a problem
+        else:
+            r = x/2.0 - 0.1 
+    
+    # points as if they were on X - Y
+    #        lyy
+    #    r_y      rx_y
+    #       ______     
+    # 0_ry /      \ x_ry
+    #      |      |
+    # lx0  |      |        lxx
+    # 0_r  |      | x_r
+    #      \______/  
+    #      r_0  rx_0
+    #         ly0
+
+
+    x_0  =   - x/2.0
+    x_r  = r - x/2.0
+    x_rx = x/2.0 - r
+    x_x  = x/2.0 
+    y_0  =   - y/2.0
+    y_r  = r - y/2.0
+    y_ry = y/2.0 - r
+    y_y  = y/2.0 
+
+    # Lines:
+    p_r_0  = FreeCAD.Vector(x_r,  y_0, zpos)
+    p_rx_0 = FreeCAD.Vector(x_rx, y_0, zpos)
+    # toShape, because otherwise we couldn't make the wire.
+    # by doing this we are creating an edge
+    # an alternative would be to use makeLine
+    ly0 = Part.Line(p_r_0, p_rx_0).toShape() # Horizontal lower line
+
+    p_x_r  = FreeCAD.Vector(x_x   ,y_r, zpos)
+    p_x_ry = FreeCAD.Vector(x_x   ,y_ry, zpos)
+    lxx = Part.Line(p_x_r, p_x_ry).toShape() # vertical on the right
+
+    p_r_y  = FreeCAD.Vector(x_r,  y_y, zpos)
+    p_rx_y = FreeCAD.Vector(x_rx, y_y, zpos)
+    lyy = Part.Line(p_r_y, p_rx_y).toShape() # Horizontal top line
+
+    p_0_r  = FreeCAD.Vector(x_0, y_r,  zpos)
+    p_0_ry = FreeCAD.Vector(x_0, y_ry, zpos)
+    lx0 = Part.Line(p_0_r, p_0_ry).toShape()  # vertical on the left
+    # if I wanted to see these shapes
+    #fc_ly0 = doc.addObject("Part::Feature", "ly0")
+    #fc_ly0.Shape = ly0
+    #fc_lxx = doc.addObject("Part::Feature", "lxx")
+    #fc_lxx.Shape = lxx
+    #fc_lyy = doc.addObject("Part::Feature", "lyy")
+    #fc_lyy.Shape = lyy
+    #fc_lx0 = doc.addObject("Part::Feature", "lx0")
+    #fc_lx0.Shape = lx0
+
+    if r > 0:
+        # center points of the 4 archs:
+        pcarch_00 = FreeCAD.Vector (x_r,  y_r,zpos)
+        pcarch_x0 = FreeCAD.Vector (x_rx, y_r,zpos)
+        pcarch_0y = FreeCAD.Vector (x_r,  y_ry,zpos)
+        pcarch_xy = FreeCAD.Vector (x_rx, y_ry,zpos)
+        dircir = FreeCAD.Vector (0,0,1)
+
+        # ALTERNATIVE 1: Making the OpenCascade shape,
+        # and adding it to a Freecad Object
+        arch_00 = Part.makeCircle (r, pcarch_00, dircir, 180, 270) 
+        arch_x0 = Part.makeCircle (r, pcarch_x0, dircir, 270, 0) 
+        arch_0y = Part.makeCircle (r, pcarch_0y, dircir, 90, 180) 
+        arch_xy = Part.makeCircle (r, pcarch_xy, dircir, 0, 90) 
+        # freecad object
+        #fc_arch_00 = doc.addObject("Part::Feature", "arch_00")
+        #fc_arch_00.Shape = arch_00
+        #fc_arch_x0 = doc.addObject("Part::Feature", "arch_x0")
+        #fc_arch_x0.Shape = arch_x0
+        #fc_arch_0y = doc.addObject("Part::Feature", "arch_0y")
+        #fc_arch_0y.Shape = arch_0y
+        #fc_arch_xy = doc.addObject("Part::Feature", "arch_xy")
+        #fc_arch_xy.Shape = arch_xy
+ 
+        # ALTERNATIVE 2: using the Part::Circle
+        # you have to place it with Placement
+        #cir_00 = doc.addObject("Part::Circle","cir_00")
+        #cir_00.Angle0 = 180
+        #cir_00.Angle1 = 270
+        #cir_00.Radius = r
+        #cir_00.Placement.Base = pcarch_00
+
+        # Make a wire
+        # it seems that it matters the order
+        # for this example, it doesnt work if I do Part.Shape as in the 
+        # example:
+        # http://freecadweb.org/wiki/index.php?title=Topological_data_scripting
+        wire_rndrect = Part.Wire ([
+                                     lx0,
+                                     arch_00,
+                                     ly0,
+                                     arch_x0,
+                                     lxx,
+                                     arch_xy,
+                                     lyy,
+                                     arch_0y
+                                    ])
+    else: # just a rectangle
+        wire_rndrect = Part.Wire ([
+                                     lx0,
+                                     ly0,
+                                     lxx,
+                                     lyy,
+                                    ])
+
+
+    return wire_rndrect
+
+
+
+#doc = FreeCAD.newDocument()
+
+#wire1 = shpRndRectWire (x=10, y=12,  r=0)
+
+#wire2 = shpaddRndRectWire (x=10-2, y=12-2, r= 0 )
+
+
+#rndrect_1 = doc.addObject("Part::Feature", "rndrect_1")
+#rndrect_1.Shape = wire1
+#rndrect_2 = doc.addObject("Part::Feature", "rndrect_2")
+#rndrect_2.Shape = wire2
+#face1 = Part.Face(wire1)
+#face2 = Part.Face(wire2)
+#cut = face1.cut(face2)
+#extr = cut.extrude(Base.Vector(0,0,5))
+#Part.show(extr)
+
+    #extr_rndrect = doc.addObject("Part::Extrusion", name)
+    #extr_rndrect.Base = rndrect
+    #extr_rndrect.Dir = (0,0,2)
+    #extr_rndrect.Solid = True
+    #shp_rndrect = Part.Shape 
+    #fc_rndrect = doc.addObject("Part::Feature", "fc_rndrect")
+    #fc_rndrect.Shape = shp_rndrect
+
+#doc.recompute()
+    
+
+# ------------------- def wire_sim_xy
+# Creates a wire (shape), from a list of points on the positive quadrant of XY
+# the wire is simmetrical to both X and Y
+# vecList: list of FreeCAD Vectors, the have to be in order clockwise
+# if the first or the last points are not on the axis, a new point will be
+# created
+#
+#                   Y
+#                   |_ X
+#               
+#       __|__  
+#      /  |  \ We receive these points
+#      |  |  |
+#      |  |--------          z=0
+#      |     |
+#      \_____/  
+#      
+
+def wire_sim_xy (vecList):
+
+    edgList = []
+    if vecList[0].x != 0:
+        # the first element is not on the Y axis,so we create a first point
+        vec = FreeCAD.Vector (0, vecList[0].y, vecList[0].z)
+        seg = Part.Line(vec, vecList[0]) # segment
+        edg = seg.toShape() # edge
+        edgList.append(edg) # append to the edge list
+    listlen = len(vecList)
+    for index, vec in enumerate(vecList):
+        if vec.x < 0 or vec.y < 0:
+            logger.error('WireSimXY with negative points')
+        if index < listlen-1: # it is not the last element
+            seg = Part.Line(vec, vecList[index+1])
+            edg = seg.toShape()
+            edgList.append(edg)
+        index += 1
+    if vecList[-1].y != 0: # the last element is not on the X axis
+        vec = FreeCAD.Vector (vecList[-1].x, 0, vecList[-1].z)
+        seg = Part.Line(vecList[-1], vec)
+        edg = seg.toShape()
+        edgList.append(edg)
+    # the wire for the first cuadrant, quarter
+    quwire = Part.Wire(edgList)
+    # mirror on Y axis
+    MirY = FreeCAD.Matrix()
+    MirY.scale(FreeCAD.Vector(-1,1,1))
+    mir_quwire = quwire.transformGeometry(MirY)
+    # another option
+    # mir_quwire   = quwire.mirror(FreeCAD.Vector(0,0,0), FreeCAD.Vector(1,0,0))
+
+    #halfwire = Part.Wire([quwire, mir_quwire]) # get the half wire
+    halfwire = Part.Wire([mir_quwire, quwire]) # get the half wire
+    # otherwise it doesnt work because the edges are not aligned
+    halfwire.fixWire() 
+    # mirror on X axis
+    MirX = FreeCAD.Matrix()
+    MirX.scale(FreeCAD.Vector(1,-1,1))
+    mir_halfwire = halfwire.transformGeometry(MirX)
+    totwire = Part.Wire([mir_halfwire, halfwire]) # get the total wire
+    totwire.fixWire() 
+
+    return totwire
+
+# ------------------- end def wire_sim_xy
+
+            
+
+            
+
 
 >>>>>>> comps/master
 """  -------------------- addBolt  ---------------------------------
@@ -389,7 +781,11 @@ def addBoltNut_hole (r_shank,        l_bolt,
 #      |__|__ z = 0    |  | -- z = 0
 #                       \/
 
+<<<<<<< HEAD
 class NutHole ():
+=======
+class NutHole (object):
+>>>>>>> comps/master
 
     def __init__(self, nut_r, nut_h, hole_h, name,
                  extra = 1, nuthole_x = 1, cx=0, cy=0, holedown = 0):
@@ -464,7 +860,11 @@ class NutHole ():
         nuthole =  doc.addObject("Part::Fuse", name)
         nuthole.Base = nut
         nuthole.Tool = hole
+<<<<<<< HEAD
         self.CadObj = nuthole
+=======
+        self.fco = nuthole   # the FreeCad Object
+>>>>>>> comps/master
 
 
 
@@ -480,10 +880,22 @@ def fillet_len (box, e_len, radius, name):
     doc = FreeCAD.ActiveDocument
     fllts_v = []
     edge_ind = 1
+<<<<<<< HEAD
     for edge_i in box.Shape.Edges:
         if edge_i.Length == e_len: # same length
         # the index is appeneded (edge_ind),not the edge itself (edge_i)
         # radius is twice, because it can be variable
+=======
+    #logger.debug('fillet_len: box %s - %s' %
+    #                     ( str(box), str(box.Shape)))
+    for edge_i in box.Shape.Edges:
+        #logging.debug('fillet_len: edge Length: %s' % str(edge_i.Length))
+        if edge_i.Length == e_len: # same length
+        # the index is appeneded (edge_ind),not the edge itself (edge_i)
+        # radius is twice, because it can be variable
+            #logging.debug('fillet_len: append edge. Length: %s ' ,
+            #               str(edge_i.Length))
+>>>>>>> comps/master
             fllts_v.append((edge_ind, radius, radius))
         edge_ind += 1
     box_fllt = doc.addObject ("Part::Fillet", name)
@@ -494,3 +906,171 @@ def fillet_len (box, e_len, radius, name):
       box.ViewObject.Visibility=False
     return box_fllt
 
+<<<<<<< HEAD
+=======
+#  ---------------- calc_rot -----------------------------
+#  ---------------- Yaw, Pitch and Roll transfor
+#  Having an object with an orientation defined by 2 vectors
+#  First vector direction (x,y,z) is (1,0,0) 
+#  Second vector direction (x,y,z) is (0,0,-1) 
+#  we want to rotate the object in an ortoghonal direction. The vectors
+#  will be in -90, 180, or 90 degrees.
+#  this function returns the Rotation given by yaw, pitch and roll
+
+def calc_rot (vec1, vec2):
+           
+    # rotation calculation
+    if vec1 == (1,0,0):
+       yaw = 0
+       pitch = 0
+       if vec2 == (0,1,0):
+           roll  = 90
+       elif vec2 == (0,-1,0):
+           roll  = -90
+       elif vec2 == (0,0,1):
+           roll  = 180
+       elif vec2 == (0,0,-1):
+           roll  = 0
+       else:
+           print "error 1 in yaw-pitch-roll"
+    elif vec1 == (-1,0,0):
+       yaw = 180
+       pitch = 0
+       if vec2 == (0,1,0):
+           roll  = -90 #negative because of the yaw
+       elif vec2 == (0,-1,0):
+           roll  = 90 # positive because of the yaw = 180
+       elif vec2 == (0,0,1):
+           roll = 180
+       elif vec2 == (0,0,-1):
+           roll  = 0
+       else:
+           print "error 2 in yaw-pitch-roll"
+    elif vec1 == (0,1,0):
+       yaw = 90
+       pitch = 0
+       if vec2 == (1,0,0):
+           roll  = -90
+       elif vec2 == (-1,0,0):
+           roll  = 90
+       elif vec2 == (0,0,1):
+           roll  = 180
+       elif vec2 == (0,0,-1):
+           roll  = 0
+       else:
+           print "error 3 in yaw-pitch-roll"
+    elif vec1 == (0,-1,0):
+       yaw = -90
+       pitch = 0
+       if vec2 == (1,0,0):
+           roll  = 90 
+       elif vec2 == (-1,0,0):
+           roll  = -90 
+       elif vec2 == (0,0,1):
+           roll  = 180
+       elif vec2 == (0,0,-1):
+           roll  = 0
+       else:
+           print "error 4 in yaw-pitch-roll"
+    elif vec1 == (0,0,1):
+       pitch = -90
+       yaw = 0
+       if vec2 == (1,0,0):
+           roll  = 0 
+       elif vec2 == (-1,0,0):
+           roll  = 180 
+       elif vec2 == (0,1,0):
+           roll  = 90
+       elif vec2 == (0,-1,0):
+           roll  = -90
+       else:
+           print "error 5 in yaw-pitch-roll"
+    elif vec1 == (0,0,-1):
+       pitch = 90
+       yaw = 0
+       if vec2 == (1,0,0):
+           roll  = 180 
+       elif vec2 == (-1,0,0):
+           roll  = 0 
+       elif vec2 == (0,1,0):
+           roll  = 90
+       elif vec2 == (0,-1,0):
+           roll  = -90
+       else:
+           print "error 6 in yaw-pitch-roll"
+
+    vrot = FreeCAD.Rotation(yaw,pitch,roll)
+    return vrot
+
+#  ---------------- calc_desp_ncen ------------------------
+#  similar to calc_rot, but calculates de displacement, when we don't want
+#  to have any of the dimensions centered
+
+def calc_desp_ncen (Length, Width, Height, 
+                     vec1, vec2, cx=False, cy=False, cz=False, H_extr = False):
+           
+    # rotation calculation
+    x = 0
+    y = 0
+    z = 0
+    if abs(vec1[0]) == 1: # X axis: vec1 == (1,0,0) or vec1 == (-1,0,0):
+        if abs(vec2[1]) == 1:   # Y
+            if cx == False:
+                x = Length / 2.0
+            if cy == False:
+                y = Height / 2.0
+            if cz == False:
+                z = Width / 2.0
+        elif abs(vec2[2]) == 1:    # Z
+            if cx == False:
+                x = Length / 2.0
+            if cy == False:
+                y = Width / 2.0
+            if cz == False:
+                z = Height / 2.0
+        else:
+            print "error 1 in calc_desp_ncen"
+    elif abs(vec1[1]) == 1: # Y axis
+        if abs(vec2[0]) == 1:   # X
+            if cx == False:
+                x = Height / 2.0
+            if cy == False:
+                y = Length / 2.0
+            if cz == False:
+                z = Width / 2.0
+        elif abs(vec2[2]) == 1:    # Z
+            if cx == False:
+                x = Width / 2.0
+            if cy == False:
+                y = Length / 2.0
+            if cz == False:
+                z = Height / 2.0
+        else:
+            print "error 2 in calc_desp_ncen"
+    elif abs(vec1[2]) == 1: # Z axis
+        if abs(vec2[0]) == 1:   # X
+            if cx == False:
+                x = Height / 2.0
+            if cy == False:
+                y = Width / 2.0
+            if cz == False:
+                z = Length / 2.0
+        elif abs(vec2[1]) == 1:    # Y
+            if cx == False:
+                x = Width / 2.0
+            if cy == False:
+                y = Height / 2.0
+            if cz == False:
+                z = Length / 2.0
+        else:
+            print "error 3 in calc_desp_ncen"
+    else:
+        print "error 3 in calc_desp_ncen"
+
+
+    vdesp = FreeCAD.Vector(x,y,z)
+    return vdesp
+
+
+
+>>>>>>> comps/master

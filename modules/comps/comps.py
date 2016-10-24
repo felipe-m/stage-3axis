@@ -1,9 +1,25 @@
+<<<<<<< HEAD
 # classes that creates objects 
+=======
+# ----------------------------------------------------------------------------
+# -- Components
+# -- comps library
+# -- Python classes that creates useful parts for FreeCAD
+# ----------------------------------------------------------------------------
+# -- (c) Felipe Machado
+# -- Area of Electronics. Rey Juan Carlos University (urjc.es)
+# -- October-2016
+# ----------------------------------------------------------------------------
+# --- LGPL Licence
+# ----------------------------------------------------------------------------
+
+>>>>>>> comps/master
 
 import FreeCAD;
 import Part;
 import logging
 import os
+<<<<<<< HEAD
 <<<<<<< HEAD
 #import Draft;
 =======
@@ -16,12 +32,32 @@ import kcomp # before, it was called mat_cte
 import fcfun
 
 from fcfun import V0, VX, VY, VZ, V0ROT, addBox, addCyl, fillet_len
+=======
+import Draft;
+#import copy;
+#import Mesh;
+
+# ---------------------- can be taken away after debugging
+# directory this file is
+filepath = os.getcwd()
+import sys
+# to get the components
+# In FreeCAD can be added: Preferences->General->Macro->Macro path
+sys.path.append(filepath)
+# ---------------------- can be taken away after debugging
+
+import kcomp # before, it was called mat_cte
+import fcfun
+
+from fcfun import V0, VX, VY, VZ, V0ROT, addBox, addCyl, addCyl_pos, fillet_len
+>>>>>>> comps/master
 from fcfun import addBolt, addBoltNut_hole, NutHole
 
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(%(levelname)s - %(message)s')
 #
+<<<<<<< HEAD
 <<<<<<< HEAD
 #        _______            TotH 
 #       |  ___  |                     
@@ -32,6 +68,8 @@ logging.basicConfig(level=logging.DEBUG,
 #
 #     <-   TotW  ->
 =======
+=======
+>>>>>>> comps/master
 #        _______       _______________________________  TotH = H
 #       |  ___  |                     
 #       | /   \ |      __________ HoleH = h
@@ -40,6 +78,9 @@ logging.basicConfig(level=logging.DEBUG,
 #    |_____________|/  __ TotD = L ___________________
 #
 #     <- TotW  = W->
+<<<<<<< HEAD
+>>>>>>> comps/master
+=======
 >>>>>>> comps/master
 #
 # hole_x: 1 the depth along X axis 
@@ -56,7 +97,11 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class Sk ():
+=======
+class Sk (object):
+>>>>>>> comps/master
 =======
 class Sk (object):
 >>>>>>> comps/master
@@ -107,6 +152,10 @@ class Sk (object):
             # Axis height:
             sk_axis_z = 23;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            self.HoleH = sk_axis_z;
+>>>>>>> comps/master
 =======
             self.HoleH = sk_axis_z;
 >>>>>>> comps/master
@@ -293,7 +342,11 @@ class Sk (object):
             sk_final.Base = sk_shape_w_holes
             sk_final.Tool = mbolts_sh
 
+<<<<<<< HEAD
             self.CadObj = sk_final
+=======
+            self.fco = sk_final   # the FreeCad Object
+>>>>>>> comps/master
 
 # --------------------------------------------------------------------
 # Creates a Misumi Aluminun Profile 30x30 Series 6 Width 8
@@ -301,7 +354,11 @@ class Sk (object):
 # axis      'x', 'y' or 'z'
 #           'x' will along the x axis
 <<<<<<< HEAD
+<<<<<<< HEAD
 #           'x' will along the y axis
+=======
+#           'y' will along the y axis
+>>>>>>> comps/master
 =======
 #           'y' will along the y axis
 >>>>>>> comps/master
@@ -312,12 +369,17 @@ class Sk (object):
 # cz:     1 if you want the coordinates referenced to the z center of the piece
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class MisumiAlu30s6w8 ():
 =======
 class MisumiAlu30s6w8 (object):
 >>>>>>> comps/master
 
     doc = FreeCAD.ActiveDocument
+=======
+class MisumiAlu30s6w8 (object):
+
+>>>>>>> comps/master
     # filename of Aluminum profile sketch
     skfilename = "misumi_profile_hfs_serie6_w8_30x30.FCStd"
     ALU_W = 30.0
@@ -418,10 +480,143 @@ class MisumiAlu30s6w8 (object):
         alu_extr.Dir = self.Dir
         alu_extr.Solid = True
 
+<<<<<<< HEAD
         self.CadObj = alu_extr
 
 <<<<<<< HEAD
 =======
+=======
+        self.fco = alu_extr   # the FreeCad Object
+
+
+# ----------- class RectRndBar ---------------------------------------------
+# Creates a rectangular bar with rounded edges, and with the posibility
+# to be hollow
+#
+# Base:     the length of the base of the rectangle
+# Height:   the length of the height of the rectangle
+# Length:   the length of the bar, the extrusion 
+# Radius:   the radius of the rounded edges (fillet)
+# Thick:    the thikness of the bar (hollow bar)
+#           If it is zero or larger than base or 
+#               height, it will be full
+# inrad_same : True: inradius = radius. When the radius is very small
+#              False:  inradius = radius - thick 
+# axis      'x', 'y' or 'z'
+#           direction of the bar
+#           'x' will along the x axis
+#           'y' will along the y axis
+#           'z' will be vertical
+# baseaxis  'x', 'y' or 'z'
+#           in which axis the base is on. Cannot be the same as axis
+# cx:     1 if you want the coordinates referenced to the x center of the piece
+#         it can be done because it is a new shape formed from the union
+# cy:     1 if you want the coordinates referenced to the y center of the piece
+# cz:     1 if you want the coordinates referenced to the z center of the piece
+# attributes:
+# inRad : radius of the inner radius
+# inBase : lenght of the inner rectangle
+# inHeight : height of the inner rectangle
+# hollow   : True, if it is hollow, False if it is not
+# face     : the face has been extruded
+# fco      : FreeCad Object
+
+class RectRndBar (object):
+
+    def __init__ (self, Base, Height, Length, Radius, Thick = 0, 
+                  inrad_same = False, axis = 'x',
+                  baseaxis = 'y', name = "rectrndbar",
+                  cx=False, cy=False, cz=False):
+        doc = FreeCAD.ActiveDocument
+        self.Base = Base
+        self.Height = Height
+        self.Length = Length
+        self.Radius = Radius
+        self.Thick = Thick
+        self.inrad_same = inrad_same
+        self.name = name
+        self.axis = axis
+        self.baseaxis = baseaxis
+        self.cx = cx
+        self.cy = cy
+        self.cz = cz
+
+        self.inBase = Base - 2 * Thick
+        self.inHeight = Height - 2 * Thick
+
+        if Thick == 0 or Thick >= Base or Thick >= Height:
+            self.Thick = 0
+            self.hollow = False
+            self.inRad = 0  
+            self.inrad_same = False  
+            self.inBase = 0
+            self.inHeight = 0
+        else :
+            self.hollow = True
+            if inrad_same == True:
+               self.inRad = Radius
+            else:
+               if Radius > Thick:
+                   self.inRad = Radius - Thick
+               else:
+                   self.inRad = 0  # a rectangle, with no rounded edges (inside)
+
+        wire_ext = fcfun.shpRndRectWire (x=Base, y=Height, r=Radius,
+                                         zpos= Length/2.0)
+        face_ext = Part.Face(wire_ext)
+        if self.hollow == True:
+            wire_int = fcfun.shpRndRectWire (x=self.inBase, 
+                                             y=self.inHeight,
+                                             r=self.inRad,
+                                             zpos= Length/2.0)
+            face_int = Part.Face(wire_int)
+            face = face_ext.cut(face_int)
+        else:
+            face = face_ext  # is not hollow
+
+        self.face = face
+
+        # Rotate and extrude in the appropiate direction
+
+        # now is facing Z, I use vec2
+        if axis == 'x': # rotate to Z, the 1 or -1 makes the extrusion different
+           vec2 = (1,0,0)
+           dir_extr = FreeCAD.Vector(Length,0,0)
+        elif axis == 'y':
+           vec2 = (0,1,0)
+           dir_extr = FreeCAD.Vector(0,Length,0)
+        elif axis == 'z':
+           vec2 = (0,0,1)
+           dir_extr = FreeCAD.Vector(0,0,Length)
+
+        if baseaxis == 'x':
+           vec1 = (1,0,0)
+        elif baseaxis == 'y':
+           vec1 = (0,1,0)
+        elif baseaxis == 'z':
+           vec1 = (0,0,1)
+
+        vrot = fcfun.calc_rot (vec1,vec2)
+        vdesp = fcfun.calc_desp_ncen (
+                                      Length = self.Base,
+                                      Width = self.Height,
+                                      Height = self.Length ,
+                                      vec1 = vec1, vec2 = vec2,
+                                      cx = cx, cy=cy, cz=cz)
+
+        face.Placement.Base = vdesp
+        face.Placement.Rotation = vrot
+
+        shp_extr = face.extrude(dir_extr)
+        rndbar = doc.addObject("Part::Feature", name)
+        rndbar.Shape = shp_extr
+
+        self.fco = rndbar
+        
+# ----------- end class RectRndBar ----------------------------------------
+            
+
+>>>>>>> comps/master
 
 # ---------- class LinBearing ----------------------------------------
 # Creates a cylinder with a thru-hole object
@@ -442,6 +637,14 @@ class MisumiAlu30s6w8 (object):
 #     r_tol : What to add to r_ext for the container cylinder
 #     h_tol : What to add to h for the container cylinder, half on each side
 
+<<<<<<< HEAD
+=======
+# base_place: position of the 3 elements: All of them have the same base
+#             position.
+#             It is (0,0,0) when initialized, it has to be changed using the
+#             function base_place
+
+>>>>>>> comps/master
 class LinBearing (object):
 
     def __init__ (self, r_ext, r_int, h, name, axis = 'z', h_disp = 0,
@@ -519,6 +722,7 @@ class LinBearingClone (LinBearing):
         self.bearing_cont = bearing_cont_clone
         if bearing_cont_clone.ViewObject != None:
             bearing_cont_clone.ViewObject.Visibility=False
+<<<<<<< HEAD
     
 
 >>>>>>> comps/master
@@ -526,3 +730,318 @@ class LinBearingClone (LinBearing):
 
     
 
+=======
+
+
+# ---------- class T8Nut ----------------------
+# T8 Nut of a leadscrew
+# nutaxis: where the nut is going to be facing
+#          'x', '-x', 'y', '-y', 'z', '-z'
+#
+#           __  
+#          |__|
+#          |__| 
+#    ______|  |_ 
+#   |___________| 
+#   |___________|   ------- nutaxis = 'x' 
+#   |_______   _| 
+#          |__|
+#          |__|  
+#          |__| 
+#
+#             |
+#              ------ this is the zero. Plane YZ=0
+
+class T8Nut (object):
+
+    NutL = kcomp.T8N_L
+    FlangeL = kcomp.T8N_FLAN_L
+    ShaftOut = kcomp.T8N_SHAFT_OUT
+    LeadScrewD = kcomp.T8N_D_T8
+    LeadScrewR = LeadScrewD / 2.0
+
+    # Hole for the nut and the screw
+    ShaftD = kcomp.T8N_D_SHAFT_EXT 
+    ShaftR = ShaftD / 2.0
+    FlangeD = kcomp.T8N_D_FLAN 
+    FlangeR = FlangeD / 2.0
+    # hole for the M3 bolts to attach the nut to the housing
+    FlangeScrewHoleD = kcomp.T8N_SCREW_D
+    # Diameter where the Flange Screws are located
+    FlangeScrewPosD = kcomp.T8N_D_SCREW_POS
+
+    def __init__ (self, name, nutaxis = 'x'):
+        doc = FreeCAD.ActiveDocument
+        self.name = name
+        self.nutaxis = nutaxis
+
+        flange_cyl = addCyl_pos (r = self.FlangeR,
+                                 h = self.FlangeL,
+                                 name = "flange_cyl",
+                                 axis = 'z',
+                                 h_disp = - self.FlangeL)
+                      
+        shaft_cyl = addCyl_pos ( r = self.ShaftR,
+                                 h = self.NutL,
+                                 name = "shaft_cyl",
+                                 axis = 'z',
+                                 h_disp = - self.NutL + self.ShaftOut)
+
+        holes_list = []
+                      
+        leadscrew_hole = addCyl_pos ( r = self.LeadScrewR,
+                                      h = self.NutL + 2,
+                                      name = "leadscrew_hole",
+                                      axis = 'z',
+                                      h_disp = - self.NutL + self.ShaftOut -1)
+        holes_list.append (leadscrew_hole)
+
+        flangescrew_hole1 = addCyl_pos ( r = self.FlangeScrewHoleD/2.0,
+                                         h = self.FlangeL + 2,
+                                         name = "flangescrew_hole1",
+                                         axis = 'z',
+                                         h_disp = - self.FlangeL -1)
+        flangescrew_hole1.Placement.Base.x = self.FlangeScrewPosD /2.0
+        holes_list.append (flangescrew_hole1)
+       
+        flangescrew_hole2 = addCyl_pos ( r = self.FlangeScrewHoleD/2.0,
+                                         h = self.FlangeL + 2,
+                                         name = "flangescrew_hole2",
+                                         axis = 'z',
+                                         h_disp = - self.FlangeL -1)
+        flangescrew_hole2.Placement.Base.x = - self.FlangeScrewPosD /2.0
+        holes_list.append (flangescrew_hole2)
+       
+        flangescrew_hole3 = addCyl_pos ( r = self.FlangeScrewHoleD/2.0,
+                                         h = self.FlangeL + 2,
+                                         name = "flangescrew_hole3",
+                                         axis = 'z',
+                                         h_disp = - self.FlangeL -1)
+        flangescrew_hole3.Placement.Base.y = self.FlangeScrewPosD /2.0
+        holes_list.append (flangescrew_hole3)
+       
+        flangescrew_hole4 = addCyl_pos ( r = self.FlangeScrewHoleD/2.0,
+                                         h = self.FlangeL + 2,
+                                         name = "flangescrew_hole4",
+                                         axis = 'z',
+                                         h_disp = - self.FlangeL -1)
+        flangescrew_hole4.Placement.Base.y = - self.FlangeScrewPosD /2.0
+        holes_list.append (flangescrew_hole4)
+
+        nut_holes = doc.addObject("Part::MultiFuse", "nut_holes")
+        nut_holes.Shapes = holes_list
+
+        nut_cyls = doc.addObject("Part::Fuse", "nut_cyls")
+        nut_cyls.Base = flange_cyl
+        nut_cyls.Tool = shaft_cyl
+
+        if nutaxis == 'x':
+            vrot = FreeCAD.Rotation (VY,90)
+        elif nutaxis == '-x':
+            vrot= FreeCAD.Rotation (VY,-90)
+        elif nutaxis == 'y':
+            vrot= FreeCAD.Rotation (VX,-90)
+        elif nutaxis == '-y':
+            vrot = FreeCAD.Rotation (VX,90)
+        elif nutaxis == '-z':
+            vrot = FreeCAD.Rotation (VX,180)
+        else: # nutaxis =='z' no rotation
+            vrot = FreeCAD.Rotation (VZ,0)
+
+        nut_cyls.Placement.Rotation = vrot
+        nut_holes.Placement.Rotation = vrot
+
+        t8nut = doc.addObject("Part::Cut", "t8nut")
+        t8nut.Base = nut_cyls
+        t8nut.Tool = nut_holes
+        # recompute before color
+        doc.recompute()
+        t8nut.ViewObject.ShapeColor = fcfun.YELLOW
+
+        self.fco = t8nut  # the FreeCad Object
+   
+                      
+    
+
+# ---------- class T8NutHousing ----------------------
+# Housing for a T8 Nut of a leadscrew
+# nutaxis: where the nut is going to be facing
+#          'x', '-x', 'y', '-y', 'z', '-z'
+# screwface_axis: where the screws are going to be facing
+#          it cannot be the same axis as the nut
+#          'x', '-x', 'y', '-y', 'z', '-z'
+# cx, cy, cz, if it is centered on any of the axis
+
+class T8NutHousing (object):
+
+    Length = kcomp.T8NH_L
+    Width  = kcomp.T8NH_W
+    Height = kcomp.T8NH_H
+
+    # separation between the screws that attach to the moving part
+    ScrewLenSep  = kcomp.T8NH_ScrLSep
+    ScrewWidSep  = kcomp.T8NH_ScrWSep
+
+    # separation between the screws to the end
+    ScrewLen2end = (Length - ScrewLenSep)/2
+    ScrewWid2end = (Width  - ScrewWidSep)/2
+
+    # Screw dimensions, that attach to the moving part: M4 x 7
+    ScrewD = kcomp.T8NH_ScrD
+    ScrewR = ScrewD / 2.0
+    ScrewL = kcomp.T8NH_ScrL + kcomp.TOL
+
+    # Hole for the nut and the screw
+    ShaftD = kcomp.T8N_D_SHAFT_EXT + kcomp.TOL # I don't know the tolerances
+    ShaftR = ShaftD / 2.0
+    FlangeD = kcomp.T8N_D_FLAN + kcomp.TOL # I don't know the tolerances
+    FlangeR = FlangeD / 2.0
+    FlangeL = kcomp.T8N_FLAN_L + kcomp.TOL
+    FlangeScrewD = kcomp.T8NH_FlanScrD
+    FlangeScrewR = FlangeScrewD / 2.0
+    FlangeScrewL = kcomp.T8NH_FlanScrL + kcomp.TOL
+    # Diameter where the Flange Screws are located
+    FlangeScrewPosD = kcomp.T8N_D_SCREW_POS
+  
+    def __init__ (self, name, nutaxis = 'x', screwface_axis = 'z',
+                  cx = 1, cy= 1, cz = 0):
+        self.name = name
+        self.nutaxis = nutaxis
+        self.screwface_axis = screwface_axis
+        self.cx = cx
+        self.cy = cy
+        self.cz = cz
+
+        doc = FreeCAD.ActiveDocument
+        # centered so it can be rotated without displacement, and everything
+        # will be in place
+        housing_box = fcfun.addBox_cen (self.Length, self.Width, self.Height,
+                                  name= name + "_box", 
+                                  cx=True, cy=True, cz=True)
+
+        hole_list = []
+
+        leadscr_hole = addCyl_pos (r=self.ShaftR, h= self.Length + 1,
+                                   name = "leadscr_hole",
+                                   axis = 'x', h_disp = -self.Length/2.0-1)
+        hole_list.append(leadscr_hole)
+        nutflange_hole = addCyl_pos (r=self.FlangeR, h= self.FlangeL + 1,
+                                   name = "nutflange_hole",
+                                   axis = 'x',
+                                   h_disp = self.Length/2.0 - self.FlangeL)
+        hole_list.append(nutflange_hole)
+        # screws to attach the nut flange to the housing
+        # M3 x 10
+        screwflange_l = addCyl_pos (r = self.FlangeScrewR,
+                                    h = self.FlangeScrewL + 1,
+                                    name = "screwflange_l",
+                                    axis = 'x',
+                                    h_disp =   self.Length/2.0
+                                             - self.FlangeL
+                                             - self.FlangeScrewL)
+        screwflange_l.Placement.Base = FreeCAD.Vector(0,
+                                    - self.FlangeScrewPosD / 2.0,
+                                   )
+        hole_list.append(screwflange_l)
+        screwflange_r = addCyl_pos (r = self.FlangeScrewR,
+                                    h = self.FlangeScrewL + 1,
+                                    name = "screwflange_r",
+                                    axis = 'x',
+                                    h_disp =   self.Length/2.0
+                                             - self.FlangeL
+                                             - self.FlangeScrewL)
+        screwflange_r.Placement.Base = FreeCAD.Vector (0,
+                                   self.FlangeScrewPosD / 2.0,
+                                   0)
+        hole_list.append(screwflange_r)
+
+
+        # screws to attach the housing to the moving part
+        # M4x7
+        screwface_1 = fcfun.addCyl_pos (r = self.ScrewR, h = self.ScrewL + 1,
+                                        name="screwface_1",
+                                        axis = 'z',
+                                        h_disp = -self.Height/2 -1)
+        screwface_1.Placement.Base = FreeCAD.Vector (
+                                    - self.Length/2.0 + self.ScrewLen2end,
+                                    - self.Width/2.0 + self.ScrewWid2end,
+                                      0)
+        hole_list.append (screwface_1)
+        screwface_2 = fcfun.addCyl_pos (r = self.ScrewR, h = self.ScrewL + 1,
+                                        name="screwface_2",
+                                        axis = 'z',
+                                        h_disp = -self.Height/2 -1)
+        screwface_2.Placement.Base = FreeCAD.Vector(
+                                      self.ScrewLenSep /2.0,
+                                    - self.Width/2.0 + self.ScrewWid2end,
+                                      0)
+        hole_list.append (screwface_2)
+        screwface_3 = fcfun.addCyl_pos (r = self.ScrewR, h = self.ScrewL + 1,
+                                        name="screwface_3",
+                                        axis = 'z',
+                                        h_disp = -self.Height/2 -1)
+        screwface_3.Placement.Base = FreeCAD.Vector (
+                                    - self.Length/2.0 + self.ScrewLen2end,
+                                      self.ScrewWidSep /2.0,
+                                      0)
+        hole_list.append (screwface_3)
+        screwface_4 = fcfun.addCyl_pos (r = self.ScrewR, h = self.ScrewL + 1,
+                                        name="screwface_4",
+                                        axis = 'z',
+                                        h_disp = -self.Height/2 -1)
+        screwface_4.Placement.Base = FreeCAD.Vector(
+                                      self.ScrewLenSep /2.0,
+                                      self.ScrewWidSep /2.0,
+                                      0)
+        hole_list.append (screwface_4)
+        nuthouseholes = doc.addObject ("Part::MultiFuse", "nuthouse_holes")
+        nuthouseholes.Shapes = hole_list
+       
+        # rotation vector calculation
+        if nutaxis == 'x':
+           vec1 = (1,0,0)
+        elif nutaxis == '-x':
+           vec1 = (-1,0,0)
+        elif nutaxis == 'y':
+           vec1 = (0,1,0)
+        elif nutaxis == '-y':
+           vec1 = (0,-1,0)
+        elif nutaxis == 'z':
+           vec1 = (0,0,1)
+        elif nutaxis == '-z':
+           vec1 = (0,0,-1)
+
+        if screwface_axis == 'x':
+           vec2 = (1,0,0)
+        elif screwface_axis == '-x':
+           vec2 = (-1,0,0)
+        elif screwface_axis == 'y':
+           vec2 = (0,1,0)
+        elif screwface_axis == '-y':
+           vec2 = (0,-1,0)
+        elif screwface_axis == 'z':
+           vec2 = (0,0,1)
+        elif screwface_axis == '-z':
+           vec2 = (0,0,-1)
+
+        vrot = fcfun.calc_rot (vec1,vec2)
+        vdesp = fcfun.calc_desp_ncen (
+                                      Length = self.Length,
+                                      Width = self.Width,
+                                      Height = self.Height,
+                                      vec1 = vec1, vec2 = vec2,
+                                      cx = cx, cy=cy, cz=cz)
+
+        housing_box.Placement.Rotation = vrot
+        nuthouseholes.Placement.Rotation = vrot
+        housing_box.Placement.Base = vdesp
+        nuthouseholes.Placement.Base = vdesp
+
+        t8nuthouse = doc.addObject ("Part::Cut", "t8nuthouse")
+        t8nuthouse.Base = housing_box
+        t8nuthouse.Tool = nuthouseholes
+
+        self.fco = t8nuthouse  # the FreeCad Object
+
+
+>>>>>>> comps/master
