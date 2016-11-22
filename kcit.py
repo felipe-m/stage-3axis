@@ -59,19 +59,19 @@ PORTA_H = 1.0 #actually, from 0.9 to 1.1
 N_PORTA = 8
 
 # separation between 2 portas, and from the porta to the end of the base
-PORTAS_SEP = 5
+PORTA_SEP = 5.
 
 # Porta's base
 
-PORTABASE_L = (N_PORTA * PORTA_W) + (N_PORTA + 1) * PORTAS_SEP
-PORTABASE_W = PORTA_L + 2 * PORTAS_SEP
-PORTABASE_H = 4 
+PORTABASE_L = (N_PORTA * PORTA_W) + (N_PORTA + 1) * PORTA_SEP
+PORTABASE_W = PORTA_L + 2 * PORTA_SEP
+PORTABASE_H = 4. 
 
 #  ---------------- Y-slider dimensions ------------------------
 # The 2 sliders that go along the Y axis. They are also the X end
 
 
-YSLIDER_Y = PORTABASE_L - 2 * (PORTA_W + PORTAS_SEP)
+#YSLIDER_Y = PORTABASE_L - 2 * (PORTA_W + PORTAS_SEP)
 
 
 # Carriage Position
@@ -81,6 +81,12 @@ CAR_POS_X = 0
 CAR_POS_Y = 0
 
 
+# Vertical movement.
+
+# Diameter of the leadscrew
+ZLEADS_D = 8
+# Length of the leadscrew
+ZLEADS_L = 100
 
 
 

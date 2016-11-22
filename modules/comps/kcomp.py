@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-# file with constants about diferent components, materials and pieces 
-# this is the old mat_cte.py. But mat seemed to be mathematical
-# and some other general constants for the printer
-
-=======
 # ----------------------------------------------------------------------------
 # -- Component Constants
 # -- comps library
@@ -16,7 +10,6 @@
 # ----------------------------------------------------------------------------
 # --- LGPL Licence
 # ----------------------------------------------------------------------------
->>>>>>> comps/master
 
 # ---------------------- Tolerance in mm
 TOL = 0.4
@@ -26,18 +19,8 @@ STOL = TOL / 2.0       # smaller tolerance
 LAYER3D_H = 0.3  
 
 # ---------------------- Bearings
-<<<<<<< HEAD
-<<<<<<< HEAD
-LMEUU_BEARING_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
-LMEUU_BEARING_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
-=======
 LMEUU_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
 LMEUU_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
->>>>>>> comps/master
-=======
-LMEUU_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
-LMEUU_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
->>>>>>> comps/master
 
 
 
@@ -72,14 +55,16 @@ D912_HEAD_D = {3: 5.5, 4: 7.0, 5: 8.5, 6:10.0, 8:13.0, 10:18.0}
 # well, it is the same as the M, never mind...
 D912_HEAD_L =  {3: 3.0,4: 4.0, 5: 5.0,  6:6.0, 8:8.0,  10:10.0} 
 
-<<<<<<< HEAD
-=======
 M3_HEAD_R = D912_HEAD_D[3] / 2.0
 M3_HEAD_L = D912_HEAD_L[3] + TOL
 M3_HEAD_R_TOL = M3_HEAD_R + TOL/2.0 # smaller TOL, because it's small
 M3_SHANK_R_TOL = 3 / 2.0 + TOL/2.0
 
->>>>>>> comps/master
+M4_HEAD_R = D912_HEAD_D[4] / 2.0
+M4_HEAD_L = D912_HEAD_L[4] + TOL
+M4_HEAD_R_TOL = M3_HEAD_R + TOL/2.0 # smaller TOL, because it's small
+M4_SHANK_R_TOL = 3 / 2.0 + TOL/2.0
+
 # Nut DIN934 dimensions
 """
        ___     _
@@ -96,8 +81,6 @@ NUT_D934_2A = {3: 5.5, 4: 7.0,  5: 8.0}
 # the heigth, max value
 NUT_D934_L  = {3: 2.4, 4: 3.2,  5: 4.0}
 
-<<<<<<< HEAD
-=======
 M3_NUT_R = NUT_D934_D[3] / 2.0
 M3_NUT_L = NUT_D934_L[3] + TOL
 #  1.5 TOL because diameter values are minimum, so they may be larger
@@ -110,9 +93,15 @@ M3NUT_HOLE_H = NUT_HOLE_MULT_H * M3_NUT_L
 
 #M3_2APOT_TOL = NUT_D934_2A[3] +  TOL
 # Apotheme is: R * cos(30) = 0.866
-M3_2APOT_TOL = 2* M3_NUT_R_TOL * 0.866
+APOT_R = 0.866
+M3_2APOT_TOL = 2* M3_NUT_R_TOL * APOT_R
 
->>>>>>> comps/master
+M4_NUT_R = NUT_D934_D[4] / 2.0
+M4_NUT_L = NUT_D934_L[4] + TOL
+#  1.5 TOL because diameter values are minimum, so they may be larger
+M4_NUT_R_TOL = M4_NUT_R + 1.5*TOL
+
+
 # tightening bolt with added tolerances:
 # Bolt's head radius
 #tbolt_head_r = (tol * d912_head_d[sk_12['tbolt']])/2 
@@ -121,8 +110,6 @@ M3_2APOT_TOL = 2* M3_NUT_R_TOL * 0.866
 # Mounting bolt radius with added tolerance
 #mbolt_r = tol * sk_12['mbolt']/2
 
-<<<<<<< HEAD
-=======
 # ------------- DIN 125 Washers (wide) -----------------------
 
 # The Index reffers to the Metric (M3,...
@@ -246,22 +233,82 @@ class HollowCyl(object):
         self.r_in   = self.d_in/2.   # inner radius
         self.r_out  = self.d_out/2.   # outer radius
 
+# ----------------------------- Idler pulley components --------
+# this is a name list from botton to top that shows the component
+# order to make an idler pulley out of washers and bearings
 
->>>>>>> comps/master
+idlepull_name_list = [
+            HollowCyl (part = 'washer', size = 6, kind= 'large'),
+            HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+            HollowCyl (part = 'bearing', size = 624), # 624ZZ
+            HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+            HollowCyl (part = 'washer', size = 6, kind= 'large'),
+            HollowCyl (part = 'washer', size = 4, kind= 'large')
+              ]
+
+# from an idlepull_name_list, returns the maximum diameter of its bearings
+
+def get_idlepull_maxbear_d (idlepull_list):
+    d_maxbear = 0
+    for ind, elem in enumerate(idlepull_list):
+        if elem.part == 'bearing':
+            if d_maxbear < elem.d_out :
+                d_maxbear = elem.d_out
+    return d_maxbear
+    
+
+# ----------------------------- NEMA motor dimensions --------
+
+# width of the motor (both dimensions: it is a square)
+NEMA_W  = {
+             11:  28.2,
+             14:  35.2,
+             17:  42.3,
+             23:  56.4,
+             34:  86.0,
+             42: 110.0 }
+
+# Separation of the holes for the bolts 
+NEMA_BOLT_SEP  = {
+             11:  23.0,
+             14:  26.0,
+             17:  31.0,
+             23:  47.1,
+             34:  69.6,
+             42:  89.0 }
+
+# Diameter of the shaft
+NEMA_SHAFT_D  = {
+             11:   5.0,
+             14:   5.0,
+             17:   5.0,
+             23:   6.35,
+             34:  14.0,
+             42:  19.0 }
+
+# Bolt diameter
+NEMA_BOLT_D  = {
+             11:   2.5,  # M2.5
+             14:   3.0,  # M3
+             17:   3.0,  # M3
+             23:   5.5,
+             34:   5.5,
+             42:   8.5 }
+
+
+
 # ----------------------------- shaft holder SK dimensions --------
 
 SK12 = { 'd':12.0, 'H':37.5, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
          'h':23.0, 'A':21.0, 'b': 5.0, 'g':6.0,  'I':20.0,
          'mbolt': 5, 'tbolt': 4} 
 
-<<<<<<< HEAD
-=======
 # ------------------------- T8 Nut for leadscrew ---------------------
 #   
 #  1.5|3.5| 10  | 
 #      __  _____________________________ d_ext: 22
 #     |__|
-#     |__|   screw_d: 0.35  --- d_screw_pos: 16
+#     |__|   bolt_d: 0.35  --- d_bolt_pos: 16
 #    _|  |______     ________ d_shaft_ext: 10.2
 #   |___________|    --- d_T8 (threaded) 
 #   |___________|    ---   
@@ -274,7 +321,7 @@ SK12 = { 'd':12.0, 'H':37.5, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
 #      10  |3.5| 1.5
 #           __  _____________________________ d_flan: 22
 #          |__|
-#          |__|   screw_d: 0.35  --- d_screw_pos: 16
+#          |__|   bolt_d: 0.35  --- d_bolt_pos: 16
 #    ______|  |_    ________ d_shaft_ext: 10.2
 #   |___________|    ___ d_T8 (threaded) 
 #   |___________|    ___   
@@ -283,16 +330,16 @@ SK12 = { 'd':12.0, 'H':37.5, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
 #          |__|  -------------------
 #          |__|  ____________________________
 #
-#          |  |
+#          |  | nut_shaft_out
 #           nut_flan_l: 3.5
 #   |  nut_l:15  |
 #
 #              | |
 #               T8NUT_SHAFT_OUT: 1.5
 
-T8N_SCREW_D     = 3.5
+T8N_BOLT_D      = 3.5
 T8N_D_FLAN      = 22.0
-T8N_D_SCREW_POS = 16.0
+T8N_D_BOLT_POS  = 16.0
 T8N_D_SHAFT_EXT = 10.2
 T8N_D_T8        = 8.0
 T8N_L           = 15.0
@@ -307,23 +354,132 @@ T8NH_W = 34.0
 T8NH_H = 28.0
 
 # separation between the screws that attach to the moving part
-T8NH_ScrLSep  = 18.0
-T8NH_ScrWSep =  24.0
+T8NH_BoltLSep  = 18.0
+T8NH_BoltWSep =  24.0
 
 # separation between the screws to the end
-T8NH_ScrL2end = (T8NH_L - T8NH_ScrLSep)/2.0
-T8NH_ScrW2end = (T8NH_W - T8NH_ScrWSep)/2.0
+T8NH_BoltL2end = (T8NH_L - T8NH_BoltLSep)/2.0
+T8NH_BoltW2end = (T8NH_W - T8NH_BoltWSep)/2.0
 
-# Screw dimensions, that attach to the moving part: M4 x 7
-T8NH_ScrD = 4.0
-T8NH_ScrR = T8NH_ScrD / 2.0
-T8NH_ScrL = 7.0
+# Boltew dimensions, that attach to the moving part: M4 x 7
+T8NH_BoltD = 4.0
+T8NH_BoltR = T8NH_BoltD / 2.0
+T8NH_BoltL = 7.0
 
-# Screw dimensions, that attach to the Nut Flange: M3 x 10
-T8NH_FlanScrD = 3.0
-T8NH_FlanScrL = 10.0
+# Bolt dimensions, that attach to the Nut Flange: M3 x 10
+T8NH_FlanBoltD = 3.0
+T8NH_FlanBoltL = 10.0
+
+# ---------------- flexible shaft coupler --------------------------
+
+# rb: 2 Nm. Referred to diameter of the coupled shafts
 
 
+# coupler diameter
+FLEXSC_RB_D = {
+                (3, 8):20.,
+                (4, 6):18.,
+                (4, 8):20.,
+                (5, 6):18.,
+                (5, 8):19., #check
+                (5,10):20.
+              }
+
+# coupler length
+FLEXSC_RB_L = {
+                (3, 8):25.,
+                (4, 6):25.,
+                (4, 8):25.,
+                (5, 6):25.,
+                (5, 8):25., #check
+                (5,10):25.
+              }
+
+# KFL Pillow Block
+#             
+#            _____     ____ L
+#           / ___ \     _
+#         /  /   \  \
+#       ( O (     ) 0 )
+#         \  \___/  /   
+#           \_____/    ____
+#          
+#         |--- J ---|
+#       |----- H -----|
+#
+
+# Housing: FL(08)
+# Bearing Number: SU(08)
 
 
->>>>>>> comps/master
+# ------------------------ Linear Guides 
+
+
+#RAIL DIMENSIONS
+
+# rw: Rail Width
+# rh: Rail Height
+# boltlsep: Bolt separation on the length dimension
+# boltwsep: Bolt separation on the width dimension, if 0, just one on a line
+# boltd: Bolt hole diameter
+# bolthd: Bolt head hole diameter
+# bolthh: Bolt head hole height
+# bolend_sep: separation of the first bolt to the end
+
+# ------------------ Misumi SEBWM16 
+SEBWM16_R = { 'rw'     : 42., 'rh': 9.5,
+              'boltlsep': 40., 'boltwsep' : 23.,
+              'boltd'   : 4.5, 'bolthd'   : 8. , 'bolthh': 4.5,
+              'boltend_sep' : 15.   }
+
+# ------------------ NB SEBS15A
+SEB15A_R = { 'rw'     : 15., 'rh': 9.5,
+              'boltlsep': 40., 'boltwsep' : 0,
+              'boltd'   : 3.5, 'bolthd'   : 6. , 'bolthh': 4.5,
+              'boltend_sep' : 15.   }
+
+#BLOCK DIMENSIONS
+
+# bl: block Length
+# bls: block Length, the inner part (smaller)
+# bw: block Width, the larger
+# bws: block Width, the smaler part at the ends
+# bh: block Height, just the block
+# lh: linear guide Height: together the rail and the block
+# boltlsep: Bolt separation on the length dimension
+# boltwsep: Bolt separation on the length dimension
+# boltd: Bolt diameter
+# boltl: Bolt length. if 0 it is through hole
+
+# ------------------ Misumi SEBWM16 
+SEBWM16_B = { 'bl'  : 55.,
+              'bls' : 40.,
+              'bw'  : 74.,
+              'bws' : 60.,  # not on the specifications
+              'bh'  : 13.,  # block height, just the block
+              'lh'  : 16.,  # linear guide height, with the rail
+              'boltlsep' : 20.,  # Bolt separation on the length dimension
+              'boltwsep' : 65.,  # Bolt separation on the width dimension
+              'boltd'  : 5.,  # Bolt diameter M5
+              'boltl'  : 0  # Thru-hole
+            }
+
+# ------------------ NB SEBS15A
+SEB15A_B = {  'bl'  : 42.,
+              'bls' : 29.5,
+              'bw'  : 32.,
+              'bws' : 32.,  # the same
+              'bh'  : 12.,  # block height, just the block
+              'lh'  : 16.,  # linear guide height, with the rail
+              'boltlsep' : 20.,  # Bolt separation on the length dimension
+              'boltwsep' : 25.,  # Bolt separation on the width dimension
+              'boltd'  : 3.,  # Bolt diameter M3
+              'boltl'  : 4.  # 
+            }
+
+
+SEBWM16 = { 'rail'  : SEBWM16_R,
+            'block' : SEBWM16_B}
+
+SEB15A = { 'rail'  : SEB15A_R,
+           'block' : SEB15A_B}
