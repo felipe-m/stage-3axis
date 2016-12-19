@@ -38,6 +38,7 @@ import kcomp    # import material constants and other constants
 import comps    # import my CAD components
 import beltcl   # import my CAD components
 import partgroup  # import my CAD components
+import kcit
 
 from fcfun import V0, VX, VY, VZ, V0ROT, addBox, addCyl, fillet_len
 from fcfun import VXN, VYN, VZN
@@ -116,6 +117,7 @@ logger = logging.getLogger(__name__)
 # ovdent_w  : width of the dent, including the overlap to make the union
 # ovdent_l  : length of the dent, including the overlap to make the union 
 # idlepull_axsep : separation between the axis iddle pulleys
+# pulley_posx: relative position X of the idle pulleys
 # belt_sep : separation between the inner part of the iddle pulleys
 #                   that is where the belts are. So it is
 #                   idlepull_axsep - 2* radius of the bearing
@@ -167,10 +169,10 @@ class EndShaftSlider (object):
     BOLT_NUT_R_TOL = BOLT_NUT_R + 1.5*MTOL
 
     # Bolts for the pulleys
-    BOLTPUL_R = 4
-    BOLTPUL_SHANK_R_TOL = BOLTPUL_R / 2.0 + MTOL/2.0
-    BOLTPUL_NUT_R = kcomp.NUT_D934_D[BOLTPUL_R] / 2.0
-    BOLTPUL_NUT_L = kcomp.NUT_D934_L[BOLTPUL_R] + MTOL
+    BOLTPUL_D = kcit.BOLTPUL_D
+    BOLTPUL_SHANK_R_TOL = BOLTPUL_D / 2.0 + MTOL/2.0
+    BOLTPUL_NUT_R = kcomp.NUT_D934_D[BOLTPUL_D] / 2.0
+    BOLTPUL_NUT_L = kcomp.NUT_D934_L[BOLTPUL_D] + MTOL
     #  1.5 TOL because diameter values are minimum, so they may be larger
     BOLTPUL_NUT_R_TOL = BOLTPUL_NUT_R + 1.5*MTOL
 
@@ -389,6 +391,9 @@ class EndShaftSlider (object):
         bolt_pull_pos_x =   (  bearing_r_tol
                               + self.MIN_BEAR_SEP
                               + 0.25 * holdrod_insert )
+
+        self.pulley_posx = bolt_pull_pos_x
+
         #bolt_pullow_pos_y =  2.5 * self.OUT_SEP_L + 2 * holdrod_r_tol + y_offs
         bolt_pullow_pos_y =  2.5 * self.OUT_SEP_L + 2 * holdrod_r + y_offs
         bolt_pulhigh_pos_y = (  self.length
@@ -2050,13 +2055,13 @@ class PortaBase (object):
                                     0.7*portabase2nut,  #r2
                                     portabase2nut +1)  #height
 
-        shp_intcone = Part.makeCone(nutshank_d/2. + TOL/2., #r1
+        shp_intcone = Part.makeCone(nutshank_d/2. + TOL, #r1
                                     #portabase2nut/2., #r2
                                     0.5*portabase2nut, #r2
                                     portabase2nut - nutshank_l +2,  #height
                                     FreeCAD.Vector(0,0,nutshank_l))
 
-        shp_nutcyl = Part.makeCylinder(nutshank_d/2. + TOL/2, # r
+        shp_nutcyl = Part.makeCylinder(nutshank_d/2. + TOL, # r
                                        nutshank_l + 2, # h
                                        FreeCAD.Vector (0,0,-1))
 
@@ -2237,27 +2242,27 @@ class PortaBase (object):
         vpos = FreeCAD.Vector(position)
         self.fco.Placement.Base = vpos
 
-doc = FreeCAD.newDocument()
+#doc = FreeCAD.newDocument()
 
-nutshank_l = kcomp.T8N_L - kcomp.T8N_FLAN_L - kcomp.T8N_SHAFT_OUT
-h_portabase = PortaBase (
-                         porta_l = 75.,
-                         porta_w = 25.,
-                         n_porta = 8,
-                         porta_sep = 5.,
-                         portabase_h = 4.,
-                         portabase2nut = 83.,
-                         nutshank_d = kcomp.T8N_D_SHAFT_EXT,
-                         nutshank_l = nutshank_l,
-                         nutflange_d = kcomp.T8N_D_FLAN,
-                         nutbolt_d = kcomp.T8N_BOLT_D,
-                         nutbolt_pos = kcomp.T8N_D_BOLT_POS/2.,
-                         dlgy = kcomp.SEB15A,
-                         lgy_posy = 99.96,
-                         # position relative to the nut
-                         lgybl_posz_c_bot = -62.5,
-                         lgy_posz_top = 50.5
-                         )
+#nutshank_l = kcomp.T8N_L - kcomp.T8N_FLAN_L - kcomp.T8N_SHAFT_OUT
+#h_portabase = PortaBase (
+#                         porta_l = 75.,
+#                         porta_w = 25.,
+#                         n_porta = 8,
+#                         porta_sep = 5.,
+#                         portabase_h = 4.,
+#                         portabase2nut = 83.,
+#                         nutshank_d = kcomp.T8N_D_SHAFT_EXT,
+#                         nutshank_l = nutshank_l,
+#                         nutflange_d = kcomp.T8N_D_FLAN,
+#                         nutbolt_d = kcomp.T8N_BOLT_D,
+#                         nutbolt_pos = kcomp.T8N_D_BOLT_POS/2.,
+#                         dlgy = kcomp.SEB15A,
+#                         lgy_posy = 99.96,
+#                         # position relative to the nut
+#                         lgybl_posz_c_bot = -62.5,
+#                         lgy_posz_top = 50.5
+#                         )
 
 
 

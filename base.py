@@ -52,9 +52,9 @@ savepath = filepath + "/../../freecad/citometro/py/"
 
 import fcfun   # import my functions for freecad. FreeCad Functions
 import kcit    # import citometer constants
-#import mat_cte  # name changed to kcomp
 import kcomp   # import material constants and other constants
 import comps   # import my CAD components
+import parts   # import my CAD components to print
 import citoparts # import my CAD pieces to be printed
 
 from fcfun import V0, VX, VY, VZ, V0ROT, addBox, addCyl, fillet_len
@@ -414,15 +414,17 @@ doc.recompute()
 boltend_sep = 8.
 boltend_sep15 = 14.
 
+bl_pos = 0.8
+
 lg_nx = comps.LinGuide (136., kcomp.SEBWM16, axis_l = 'z', axis_b='x',
-                    boltend_sep = boltend_sep, bl_pos=0.8, name='lg_nx')
+                    boltend_sep = boltend_sep, bl_pos=bl_pos, name='lg_nx')
 
 lg_nx.BasePlace((h_censlid.lg_nx_posx,
                  portabase_pos_y,
                  rod_y_pos_z +  h_censlid.lg_nx_posz - boltend_sep))
 
 lg_y = comps.LinGuide (150., kcomp.SEB15A, axis_l = 'z', axis_b='-y',
-                    boltend_sep = boltend_sep15, bl_pos=0, name='lg_y')
+                    boltend_sep = boltend_sep15, bl_pos=bl_pos, name='lg_y')
                     #boltend_sep = boltend_sep15, bl_pos=0.8, name='lg_y')
 
 lg_y.BasePlace(( 0,
@@ -431,7 +433,7 @@ lg_y.BasePlace(( 0,
 
 
 lg_ny = comps.LinGuide (150., kcomp.SEB15A, axis_l = 'z', axis_b='y',
-                    boltend_sep = boltend_sep15, bl_pos=0, name='lg_ny')
+                    boltend_sep = boltend_sep15, bl_pos=bl_pos, name='lg_ny')
                     #boltend_sep = boltend_sep15, bl_pos=0.8, name='lg_ny')
 
 lg_ny.BasePlace(( 0,
@@ -573,9 +575,116 @@ h_portabase = citoparts.PortaBase (
 
 h_portabase.BasePlace((0,portabase_pos_y, portabase_nut_posz))
 
+doc.recompute()
+
+# this is the length of the portabase.
+portabase_l = h_portabase.portabase_l
+
+# this is the length of the end slider
+endslider_l = h_xendslid_l.length
+
+# the half of its difference will be the amount that the central slider
+# (including the portabase) exceeds each end of the endslider.
+# That will be the depth dimension of the endstop. That will also have
+# one idle pulley
+endstop_d = (portabase_l - endslider_l) / 2.
+
+endslider_posz_top = rod_y_pos_z + h_xendslid_l.partheight
+endslider_posz_bot = rod_y_pos_z - h_xendslid_l.partheight
+
+h_idlepulleyhold_lowends_nx = parts.IdlePulleyHolder (
+                           profile_size =  kcit.ALU_W,
+                           pulleybolt_d = kcit.BOLTPUL_D,
+                           holdbolt_d = 5,
+                           # height above the profile (relative):
+                           above_h = endslider_posz_top - kcit.ALU_W,
+                           mindepth = endstop_d,
+                           endstop_side = 1,
+                           # 2mm below to avoid touching with the rod
+                           endstop_posh = endslider_posz_bot - kcit.ALU_W -2,
+                           name = 'idlpulhold_lowends_nx')
+
+
+idlepulleyhold_lowends_nx = h_idlepulleyhold_lowends_nx.fco
+idlepulleyhold_lowends_nx.Placement.Rotation = FreeCAD.Rotation (VZ, 180)
+idlepulleyhold_lowends_nx.Placement.Base = FreeCAD.Vector(
+                                     -rod_y_sep/2.0 + h_xendslid_l.pulley_posx,
+                                     kcit.CIT_Y - 1.5*kcit.ALU_W,
+                                     kcit.ALU_W)
+
+idlepull_h = 8.
+pulley_d = 13.
+
+
+h_idlepulleyhold_highends_x = parts.IdlePulleyHolder (
+                         profile_size =  kcit.ALU_W,
+                         pulleybolt_d = kcit.BOLTPUL_D,
+                         holdbolt_d = 5,
+                         # height above the profile (relative):
+                         above_h = endslider_posz_top - kcit.ALU_W + idlepull_h,
+                         mindepth = endstop_d,
+                         endstop_side = -1,
+                         # 2mm below to avoid touching with the rod
+                         endstop_posh = endslider_posz_bot - kcit.ALU_W -2,
+                         name = 'idlpulhold_highends_x')
+
+
+idlepulleyhold_highends_x = h_idlepulleyhold_highends_x.fco
+idlepulleyhold_highends_x.Placement.Rotation = FreeCAD.Rotation (VZ, 180)
+idlepulleyhold_highends_x.Placement.Base = FreeCAD.Vector(
+                                     rod_y_sep/2.0 - h_xendslid_l.pulley_posx,
+                                     kcit.CIT_Y - 1.5*kcit.ALU_W,
+                                     kcit.ALU_W)
+
+
+                                       
+h_idlepulleyhold_low_x = parts.IdlePulleyHolder (
+                        profile_size =  kcit.ALU_W,
+                        pulleybolt_d = kcit.BOLTPUL_D,
+                        holdbolt_d = 5,
+                        # height above the profile (relative):
+                        above_h = endslider_posz_top - kcit.ALU_W,
+                        mindepth = 0,
+                        endstop_side = 0,
+                        # 2mm below to avoid touching with the rod
+                        endstop_posh = 0,
+                        name = 'idlpulhold_low_x')
+
+idlepulleyhold_low_x = h_idlepulleyhold_low_x.fco
+idlepulleyhold_low_x.Placement.Base = FreeCAD.Vector(
+                        rod_y_sep/2.0 - h_xendslid_l.pulley_posx + 1.5*pulley_d,
+                        kcit.CIT_Y - 0.5 * kcit.ALU_W,
+                        kcit.ALU_W)
+
+                                       
+h_idlepulleyhold_high_nx = parts.IdlePulleyHolder (
+                        profile_size =  kcit.ALU_W,
+                        pulleybolt_d = kcit.BOLTPUL_D,
+                        holdbolt_d = 5,
+                        # height above the profile (relative):
+                        above_h = endslider_posz_top - kcit.ALU_W + idlepull_h,
+                        mindepth = 0,
+                        endstop_side = 0,
+                        # 2mm below to avoid touching with the rod
+                        endstop_posh = 0,
+                        name = 'idlpulhold_high_nx')
+
+idlepulleyhold_high_nx = h_idlepulleyhold_high_nx.fco
+idlepulleyhold_high_nx.Placement.Base = FreeCAD.Vector(
+                       -rod_y_sep/2.0 + h_xendslid_l.pulley_posx - 1.5*pulley_d,
+                        kcit.CIT_Y - 0.5 * kcit.ALU_W,
+                        kcit.ALU_W)
+
+
+ 
 
 
 doc.recompute()
+h_idlepulleyhold_lowends_nx.fco.ViewObject.ShapeColor = fcfun.ORANGE
+h_idlepulleyhold_highends_x.fco.ViewObject.ShapeColor = fcfun.ORANGE
+h_idlepulleyhold_low_x.fco.ViewObject.ShapeColor = fcfun.ORANGE
+h_idlepulleyhold_high_nx.fco.ViewObject.ShapeColor = fcfun.ORANGE
+
 # this changes the color, but doesn't show it on the gui
 #portahold.ViewObject.ShapeColor = fcfun.RED
 """

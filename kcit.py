@@ -89,4 +89,6 @@ ZLEADS_D = 8
 ZLEADS_L = 100
 
 
+# Idle pulleys made with bolts
+BOLTPUL_D = 4
 
