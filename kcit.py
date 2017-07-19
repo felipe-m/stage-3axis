@@ -57,6 +57,8 @@ PORTA_H = 1.0 #actually, from 0.9 to 1.1
 
 # Number of Portas:
 N_PORTA = 8
+# Number of Portas for the small version:
+#N_PORTA = 2
 
 # separation between 2 portas, and from the porta to the end of the base
 PORTA_SEP = 5.
