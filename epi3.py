@@ -97,6 +97,7 @@ file_comps = open ('epi_bom.txt', 'w')
 dcube = kcomp_optic.CAGE_CUBE_60
 
 H_CUBES = 250.
+# cubes separation, separation between the centers
 # 2 of the cubes are very close
 CUBE_SEP_R = math.ceil(dcube['L']) + 5.   # 76.2 -> 82
 # Separation to the left cube larger, to have space to change the beamsplitter
@@ -126,14 +127,14 @@ CUBE_VBBOARD_SEP = 27.5
 CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + dcube['L']/2.
 
 # vertical breadboard
-vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-                                 length = V_BREAD_BOARD_L,
-                                 width = V_BREAD_BOARD_W,
-                                 cl = 0, cw = 1, ch = 0,
-                                 fc_dir_h = VY,
-                                 fc_dir_w = VX,
-                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-                                 name = 'vertical_breadboard')
+#vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
+#                                 length = V_BREAD_BOARD_L,
+#                                 width = V_BREAD_BOARD_W,
+#                                 cl = 0, cw = 1, ch = 0,
+#                                 fc_dir_h = VY,
+#                                 fc_dir_w = VX,
+#                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+#                                 name = 'vertical_breadboard')
 
 cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
@@ -169,15 +170,52 @@ fco_alux_cubes_y = h_alux_cubes.fco
 # Since the X position is referred to the center, to get the x position of 
 # the profile center we do:
 #      alux_cubes_len*(0.5-(CUBE_SEP_R + dcube['L']/2.)/cube_block_l)
+alux_cubes_pos_z =  H_CUBES +  dcube['L'] /2.
 alux_cubes_pos = FreeCAD.Vector(
             -alux_cubes_len*(0.5-(CUBE_SEP_R+ dcube['L']/2.)/cube_block_l) ,
                            (dcube['L'] - alux_cubes_w)/2.,
-                            H_CUBES +  dcube['L'] /2.)
+                            alux_cubes_pos_z)
 fco_alux_cubes_y.Placement.Base = alux_cubes_pos
 fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
 fco_alux_cubes_ny.Label = 'alux_cubes_ny'
 fco_alux_cubes_ny.Placement.Base.y = ( fco_alux_cubes_y.Placement.Base.y 
                                       - (dcube['L'] - alux_cubes_w))
+
+# aluminum profiles to hold the linear bearings.
+# Perpendicular to the previous
+
+aluy_cubes_w = 15 # maybe 15 is better than 10
+aluy_cubes_len = 150.
+d_aluy_cubes = kcomp.ALU_PROF[aluy_cubes_w]
+
+h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
+                           axis = 'y',
+                           name = 'aluy_cubes_x',
+                           cx=1, cy=0, cz=0)
+
+# just 2 mm away from the breadboard
+
+aluy_cubes_vboard_sep = 2.5
+aluy_cubes_pos_y = -aluy_cubes_len + CUBECEN_VBBOARD_SEP - aluy_cubes_vboard_sep
+fco_aluy_cubes_x = h_aluy_cubes.fco
+
+aluy_cubes_pos_z = alux_cubes_pos_z +  alux_cubes_w
+aluy_cubes_pos_x = dcube['L']/2.
+# X will be set afterwards
+fco_aluy_cubes_x.Placement.Base = FreeCAD.Vector(0, 
+                                                  aluy_cubes_pos_y,
+                                                  aluy_cubes_pos_z)
+fco_aluy_cubes_nx = Draft.clone(fco_aluy_cubes_x)
+aluy_cubes_pos_nx = - CUBE_SEP_L + dcube['L']/2.
+fco_aluy_cubes_nx.Label = 'aluy_cubes_nx'
+fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
+fco_aluy_cubes_x.Placement.Base.x = aluy_cubes_pos_x
+       
+
+
+
+
+
 
 
 # Plate to hold the objective
@@ -216,10 +254,10 @@ h_alux_obj = comps.getaluprof(d_alu_obj, length=alux_obj_len,
                            cx=1, cy=1, cz=0)
 
 fco_alux_obj_y = h_alux_obj.fco
-alux_obj_y_pos = obj_plate_pos + FreeCAD.Vector(0,
+alux_obj_pos_y = obj_plate_pos + FreeCAD.Vector(0,
                                          h_obj_plate.cbore_hole_sep_l/2.,
                                          - alu_obj_w)
-fco_alux_obj_y.Placement.Base = alux_obj_y_pos
+fco_alux_obj_y.Placement.Base = alux_obj_pos_y
 fco_alux_obj_ny = Draft.clone(fco_alux_obj_y)
 fco_alux_obj_ny.Label = 'alux_obj_ny'
 fco_alux_obj_ny.Placement.Base.y = (  fco_alux_obj_ny.Placement.Base.y 
@@ -232,11 +270,11 @@ h_aluy_obj = comps.getaluprof(d_alu_obj, length=aluy_obj_len,
                            cx=1, cy=1, cz=0)
 fco_aluy_obj_x = h_aluy_obj.fco
 
-aluy_obj_x_pos = obj_plate_pos + FreeCAD.Vector(
+aluy_obj_pos_x = obj_plate_pos + FreeCAD.Vector(
                                          alux_obj_len/2. + alu_obj_w/2. ,
                                          (aluy_obj_len-dcube['L'])/2,
                                          - alu_obj_w)
-fco_aluy_obj_x.Placement.Base = aluy_obj_x_pos
+fco_aluy_obj_x.Placement.Base = aluy_obj_pos_x
 
 fco_aluy_obj_nx = Draft.clone(fco_aluy_obj_x)
 fco_aluy_obj_nx.Label = 'aluy_obj_nx'
