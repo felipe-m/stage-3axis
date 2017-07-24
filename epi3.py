@@ -96,18 +96,44 @@ file_comps = open ('epi_bom.txt', 'w')
 # dictionary with dimensions of the cubes
 dcube = kcomp_optic.CAGE_CUBE_60
 
+# cube width: 76.2
+cube_w = dcube['L']
+
+# view from top:
+#
+#                    Y
+#        breadboard  :
+#       _____________:____________________
+#                    :               :
+#                    :               + CUBE_VBBOARD_SEP = 27.5
+#    _______      ___:___  ______ ...:
+#   |       |    |cen:   ||right |   :
+#   | left  |    |tra:...||......|.. : ...........> X     central cube X=0 Y=0 
+#   | cube  |    | cube  || cube |   + cube_w
+#   |_______|    |_______||______|...:
+#   :   :............:.......:   :
+#   :   :     +         + CUBE_SEP_R
+#   :   :  CUBE_SEP_L        :   :
+#   :   :                    :   :
+#   :   :.....stroke.........:   :
+#   :                            :
+#   :....cube_block_l............:
+
 H_CUBES = 250.
 # cubes separation, separation between the centers
 # 2 of the cubes are very close
-CUBE_SEP_R = math.ceil(dcube['L']) + 5.   # 76.2 -> 82
+CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
 # Separation to the left cube larger, to have space to change the beamsplitter
 CUBE_SEP_L = math.ceil(1.8 * CUBE_SEP_R)
 
-file_comps.write('# Separation between the centers of right and left cubes: ')
-file_comps.write( str(CUBE_SEP_R + CUBE_SEP_L) + ' mm \n')
+stroke = CUBE_SEP_R + CUBE_SEP_L
+
+file_comps.write('# Separation between the centers of right and left cubes, ')
+file_comps.write('# stroke: ')
+file_comps.write( str(stroke) + ' mm \n')
 file_comps.write('\n')
 
-cube_block_l = CUBE_SEP_R + CUBE_SEP_L + dcube['L']
+cube_block_l = CUBE_SEP_R + CUBE_SEP_L + cube_w
 
 file_comps.write('# Length of the whole block: 3 cages in total: ')
 file_comps.write( str(cube_block_l) + ' mm \n')
@@ -124,17 +150,17 @@ V_BREAD_BOARD_W = 300.  # it has 12 holes on the width: 12x25
 CUBE_VBBOARD_SEP = 27.5
 # Separation of the center of the cube from the vertical breaboard
 # so this is the Y of the breadboard, plus its width
-CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + dcube['L']/2.
+CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
-#vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-#                                 length = V_BREAD_BOARD_L,
-#                                 width = V_BREAD_BOARD_W,
-#                                 cl = 0, cw = 1, ch = 0,
-#                                 fc_dir_h = VY,
-#                                 fc_dir_w = VX,
-#                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-#                                 name = 'vertical_breadboard')
+vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
+                                 length = V_BREAD_BOARD_L,
+                                 width = V_BREAD_BOARD_W,
+                                 cl = 0, cw = 1, ch = 0,
+                                 fc_dir_h = VY,
+                                 fc_dir_w = VX,
+                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+                                 name = 'vertical_breadboard')
 
 cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
@@ -153,63 +179,6 @@ cage_l = comp_optic.f_cagecube(dcube,
                                name = "cube_left")
 
 cage_l.BasePlace((-CUBE_SEP_L,0,H_CUBES))
-
-# using a 10mm wide aluminum profile to hold the cubes together
-alux_cubes_w = 10
-d_alux_cubes = kcomp.ALU_PROF[alux_cubes_w]
-alux_cubes_len = 300
-# the extra length of the profiles over the total set of cubes
-alux_cubes_extra = alux_cubes_len - cube_block_l
-
-h_alux_cubes = comps.getaluprof(d_alux_cubes, length=alux_cubes_len,
-                           axis = 'x',
-                           name = 'alux_cubes_y',
-                           cx=1, cy=1, cz=0)
-
-fco_alux_cubes_y = h_alux_cubes.fco
-# Since the X position is referred to the center, to get the x position of 
-# the profile center we do:
-#      alux_cubes_len*(0.5-(CUBE_SEP_R + dcube['L']/2.)/cube_block_l)
-alux_cubes_pos_z =  H_CUBES +  dcube['L'] /2.
-alux_cubes_pos = FreeCAD.Vector(
-            -alux_cubes_len*(0.5-(CUBE_SEP_R+ dcube['L']/2.)/cube_block_l) ,
-                           (dcube['L'] - alux_cubes_w)/2.,
-                            alux_cubes_pos_z)
-fco_alux_cubes_y.Placement.Base = alux_cubes_pos
-fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
-fco_alux_cubes_ny.Label = 'alux_cubes_ny'
-fco_alux_cubes_ny.Placement.Base.y = ( fco_alux_cubes_y.Placement.Base.y 
-                                      - (dcube['L'] - alux_cubes_w))
-
-# aluminum profiles to hold the linear bearings.
-# Perpendicular to the previous
-
-aluy_cubes_w = 15 # maybe 15 is better than 10
-aluy_cubes_len = 150.
-d_aluy_cubes = kcomp.ALU_PROF[aluy_cubes_w]
-
-h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
-                           axis = 'y',
-                           name = 'aluy_cubes_x',
-                           cx=1, cy=0, cz=0)
-
-# just 2 mm away from the breadboard
-
-aluy_cubes_vboard_sep = 2.5
-aluy_cubes_pos_y = -aluy_cubes_len + CUBECEN_VBBOARD_SEP - aluy_cubes_vboard_sep
-fco_aluy_cubes_x = h_aluy_cubes.fco
-
-aluy_cubes_pos_z = alux_cubes_pos_z +  alux_cubes_w
-aluy_cubes_pos_x = dcube['L']/2.
-# X will be set afterwards
-fco_aluy_cubes_x.Placement.Base = FreeCAD.Vector(0, 
-                                                  aluy_cubes_pos_y,
-                                                  aluy_cubes_pos_z)
-fco_aluy_cubes_nx = Draft.clone(fco_aluy_cubes_x)
-aluy_cubes_pos_nx = - CUBE_SEP_L + dcube['L']/2.
-fco_aluy_cubes_nx.Label = 'aluy_cubes_nx'
-fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
-fco_aluy_cubes_x.Placement.Base.x = aluy_cubes_pos_x
        
 
 
@@ -226,7 +195,7 @@ d_obj_plate = kcomp_optic.LB2C_PLATE
 # separation of the plate from the cubes, it has to be tight, but also leave
 # a little bit of room to let the cubes move
 OBJ_PLATE_SEP = 1.
-obj_plate_h = H_CUBES - dcube['L']/2. - d_obj_plate['thick'] - OBJ_PLATE_SEP
+obj_plate_h = H_CUBES - cube_w/2. - d_obj_plate['thick'] - OBJ_PLATE_SEP
 obj_plate_pos =  FreeCAD.Vector(0,0,obj_plate_h)
 obj_plate_axis_l = VY
 h_obj_plate = comp_optic.Lb2cPlate (fc_axis_h = VZ,
@@ -272,7 +241,7 @@ fco_aluy_obj_x = h_aluy_obj.fco
 
 aluy_obj_pos_x = obj_plate_pos + FreeCAD.Vector(
                                          alux_obj_len/2. + alu_obj_w/2. ,
-                                         (aluy_obj_len-dcube['L'])/2,
+                                         (aluy_obj_len-cube_w)/2,
                                          - alu_obj_w)
 fco_aluy_obj_x.Placement.Base = aluy_obj_pos_x
 
@@ -285,7 +254,7 @@ fco_aluy_obj_nx.Placement.Base.x = (  fco_aluy_obj_nx.Placement.Base.x
 
 # SM1 tube lens for the Leds and adapters to SM2 to conect to the cages
 
-pos_tubelens_c = FreeCAD.Vector(0, -dcube['L']/2. ,H_CUBES)
+pos_tubelens_c = FreeCAD.Vector(0, -cube_w/2. ,H_CUBES)
 h_tubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VYN,
                              ref_sm1 = 0, pos = pos_tubelens_c,
                              ring = 1,
@@ -329,10 +298,10 @@ h_led_l = comp_optic.PrizLed(VY, VZ, pos_led_l, name='led_l_prizmatix')
 # SM1 tube lens for the Leds and adapters to SM2 to conect to the TOP of
 # the cages. For the emission filters, with no locking rings
 # they are not on top, but inside, I dont know how much they are inserted
-# If dcube['L']/2, they are just on the edge of the cube, so a little bit less
+# If cube_w/2, they are just on the edge of the cube, so a little bit less
 # than that: 0.9
 
-emitubelens_zpos = dcube['L']/2 * 0.9
+emitubelens_zpos = cube_w/2 * 0.9
 
 pos_emitubelens_c = FreeCAD.Vector(0, 0, H_CUBES + emitubelens_zpos)
 h_emitubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VZ,
@@ -351,6 +320,186 @@ fco_emitubelens_r.Placement.Base.x = CUBE_SEP_R
 fco_emitubelens_l = Draft.clone(fco_emitubelens_c)
 fco_emitubelens_l.Label = 'emitubelens_l'
 fco_emitubelens_l.Placement.Base.x = - CUBE_SEP_L
+
+
+# using a 10mm wide aluminum profile to hold the cubes together
+# just 2 mm away from the breadboard
+# view from top:
+#
+#                    Y
+#        breadboard  :
+#       _____________:____________________
+#                    :                   :
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_bboard
+#                    :                  
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_cubes_y
+#           |    |cen:   ||right |
+#     left  |    |tra:...||......|...............> X     central cube X=0 Y=0 
+#     cube  |    | cube  || cube |
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_cubes_ny
+#
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_leds_in
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_leds_out
+#
+
+alux_cubes_w = 10
+d_alux_cubes = kcomp.ALU_PROF[alux_cubes_w]
+alux_cubes_len = 300
+# the extra length of the profiles over the total length of the 3 cubes
+alux_cubes_extra = alux_cubes_len - cube_block_l
+
+h_alux_cubes = comps.getaluprof(d_alux_cubes, length=alux_cubes_len,
+                           axis = 'x',
+                           name = 'alux_cubes_y',
+                           cx=1, cy=1, cz=0)
+
+fco_alux_cubes_y = h_alux_cubes.fco
+# Since the X position is referred to the center, to get the x position of 
+# the profile center we do:
+alux_cubes_pos_x = -alux_cubes_len*(0.5-(CUBE_SEP_R+ cube_w/2.)/cube_block_l)
+alux_cubes_pos_z =  H_CUBES +  cube_w /2.
+# Y position of the 4 aluminum profiles:
+alux_cubes_y_pos_y =   (cube_w - alux_cubes_w)/2.
+alux_cubes_ny_pos_y = - alux_cubes_y_pos_y
+alux_bboard_pos_y = cube_w/2. + CUBE_VBBOARD_SEP/2.
+# These 2 aluminum profile will hold a normal linear bearing housing
+# Calculation of the bolt separation of the linear bearing housing
+# rod diameter for the linear bearing
+rod_d = 10.
+# dictionary of the linear bearing:
+d_lbhous = kcomp.SCUU_Pr[rod_d]
+d_lbearing = d_lbhous['lbear']
+lbhous_boltsep_w = d_lbhous['bolt_sep_w']
+lbhous_w = d_lbhous['W']
+
+# alux_leds_in, will be after the sm2 ring of the SM1 to SM2 tube lens adapter
+sm2_l = h_tubelens_c.sm2_l + h_tubelens_c.ring_l
+alux_leds_in_pos_y = (- cube_w/2. - sm2_l - alux_cubes_w/2.
+                      - (lbhous_w-lbhous_boltsep_w)/2.) # to give space to the 
+                      # linear bearing housing
+
+alux_leds_out_pos_y = alux_leds_in_pos_y - lbhous_boltsep_w
+
+# Set the position on X and Z
+fco_alux_cubes_y.Placement.Base.x = alux_cubes_pos_x
+fco_alux_cubes_y.Placement.Base.z = alux_cubes_pos_z
+
+## Thin Linear bearing housing (on the breadboard side)
+
+lbear1_pos_x = -(CUBE_SEP_L-cube_w/2.)
+lbear2_pos_x = CUBE_SEP_R/2.
+lbear_pos_z = alux_cubes_pos_z 
+
+thlbear_pos_y = alux_bboard_pos_y
+thlbear_pos = FreeCAD.Vector(lbear1_pos_x, 
+                             thlbear_pos_y,
+                             lbear_pos_z)
+h_thlbear = parts.ThinLinBearHouse1rail(d_lbearing, 
+                                   fc_slide_axis = VX,
+                                   fc_bot_axis = VZ,
+                                   axis_center = 0,
+                                   mid_center = 1,
+                                   pos = thlbear_pos,
+                                   name = 'thin_linbearhouse_1')
+
+
+## Linear bearing housing
+
+lbear_axis_h = d_lbhous['axis_h']
+
+lbear_pos_y = alux_leds_in_pos_y - lbhous_boltsep_w/2.
+# the alux_cubes_pos_z is not centered, so it is the same
+
+lbear1_pos = FreeCAD.Vector(lbear1_pos_x,
+                             lbear_pos_y,
+                             lbear_pos_z)
+h_lbhouse_1 = parts.LinBearHouse(d_lbhous, fc_slide_axis=VX, fc_bot_axis=VZ,
+                   axis_center=0, mid_center=1, pos=lbear1_pos,
+                   name = 'linbearhouse_1')
+
+
+lbear2_pos = FreeCAD.Vector(lbear2_pos_x,
+                            lbear_pos_y,
+                            lbear_pos_z)
+h_lbhouse_2 = parts.LinBearHouse(d_lbhous, fc_slide_axis=VX, fc_bot_axis=VZ,
+                   axis_center=0, mid_center=1, pos=lbear2_pos,
+                   name = 'linbearhouse_2')
+
+#Length of the cart (the part between the linear bearings) to calculate the
+# length of the rods, having the stroke
+lbear_length = d_lbhous['L']
+cart_length = lbear2_pos_x - lbear1_pos_x + lbear_length
+
+file_comps.write('# Length of the "cart" block, from the linear bearings: ')
+file_comps.write( str(cart_length) + ' mm \n')
+file_comps.write('\n')
+
+
+min_rod_l = stroke + cart_length + 40
+
+file_comps.write('# Min rod length: strocke + cart length + shaft holder: ')
+file_comps.write( str(min_rod_l) + ' mm \n')
+file_comps.write('\n')
+
+
+
+
+
+
+#clone the aluminum profiles, with the X and Y position, and in Y=0
+fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
+fco_alux_cubes_ny.Label = 'alux_cubes_ny'
+fco_alux_cubes_ny.Placement.Base.y = alux_cubes_ny_pos_y
+
+
+fco_alux_bboard = Draft.clone(fco_alux_cubes_y)
+fco_alux_bboard.Label = 'alux_bboard'
+fco_alux_bboard.Placement.Base.y = alux_bboard_pos_y
+
+fco_alux_leds_in = Draft.clone(fco_alux_cubes_y)
+fco_alux_leds_in.Label = 'alux_leds_in'
+fco_alux_leds_in.Placement.Base.y = alux_leds_in_pos_y
+
+fco_alux_leds_out = Draft.clone(fco_alux_cubes_y)
+fco_alux_leds_out.Label = 'alux_leds_out'
+fco_alux_leds_out.Placement.Base.y = alux_leds_out_pos_y
+
+# and set the original aluminun profile position on Y
+fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y                        
+
+# aluminum profiles to hold the linear bearings.
+# Perpendicular to the previous
+
+aluy_cubes_w = 15 # maybe 15 is better than 10
+aluy_cubes_len = 100.
+d_aluy_cubes = kcomp.ALU_PROF[aluy_cubes_w]
+
+h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
+                           axis = 'y',
+                           name = 'aluy_cubes_x',
+                           cx=1, cy=0, cz=0)
+
+
+aluy_cubes_vboard_sep = 2.5
+aluy_cubes_pos_y = ( - aluy_cubes_len
+                     + CUBECEN_VBBOARD_SEP
+                     - aluy_cubes_vboard_sep
+                     + aluy_cubes_w)
+fco_aluy_cubes_x = h_aluy_cubes.fco
+
+aluy_cubes_pos_z = alux_cubes_pos_z +  alux_cubes_w
+aluy_cubes_pos_x = cube_w/2.
+# X will be set afterwards
+fco_aluy_cubes_x.Placement.Base = FreeCAD.Vector(0, 
+                                                  aluy_cubes_pos_y,
+                                                  aluy_cubes_pos_z)
+fco_aluy_cubes_nx = Draft.clone(fco_aluy_cubes_x)
+aluy_cubes_pos_nx = - CUBE_SEP_L + cube_w/2.
+fco_aluy_cubes_nx.Label = 'aluy_cubes_nx'
+fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
+fco_aluy_cubes_x.Placement.Base.x = aluy_cubes_pos_x
+
+
 
 
 
