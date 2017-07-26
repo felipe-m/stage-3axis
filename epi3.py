@@ -124,7 +124,12 @@ H_CUBES = 250.
 # 2 of the cubes are very close
 CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
 # Separation to the left cube larger, to have space to change the beamsplitter
-CUBE_SEP_L = math.ceil(1.8 * CUBE_SEP_R)
+CUBE_SEP_L = math.ceil(cube_w + 0.7 * cube_w)
+
+file_comps.write('# Space between central al left cube, to introduce ')
+file_comps.write('# beam splitter')
+file_comps.write( str(CUBE_SEP_L - cube_w) + ' mm \n')
+file_comps.write('\n')
 
 stroke = CUBE_SEP_R + CUBE_SEP_L
 
@@ -154,13 +159,13 @@ CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
 vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-                                 length = V_BREAD_BOARD_L,
-                                 width = V_BREAD_BOARD_W,
-                                 cl = 0, cw = 1, ch = 0,
-                                 fc_dir_h = VY,
-                                 fc_dir_w = VX,
-                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-                                 name = 'vertical_breadboard')
+                                  length = V_BREAD_BOARD_L,
+                                  width = V_BREAD_BOARD_W,
+                                  cl = 0, cw = 1, ch = 0,
+                                  fc_dir_h = VY,
+                                  fc_dir_w = VX,
+                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+                                  name = 'vertical_breadboard')
 
 cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
@@ -323,7 +328,6 @@ fco_emitubelens_l.Placement.Base.x = - CUBE_SEP_L
 
 
 # using a 10mm wide aluminum profile to hold the cubes together
-# just 2 mm away from the breadboard
 # view from top:
 #
 #                    Y
@@ -342,8 +346,11 @@ fco_emitubelens_l.Placement.Base.x = - CUBE_SEP_L
 #      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_leds_out
 #
 
+#width of the aluminum profile
 alux_cubes_w = 10
+#dictionary with the dimensions of the aluminum profile
 d_alux_cubes = kcomp.ALU_PROF[alux_cubes_w]
+# length of the aluminum profiles
 alux_cubes_len = 300
 # the extra length of the profiles over the total length of the 3 cubes
 alux_cubes_extra = alux_cubes_len - cube_block_l
@@ -353,104 +360,130 @@ h_alux_cubes = comps.getaluprof(d_alux_cubes, length=alux_cubes_len,
                            name = 'alux_cubes_y',
                            cx=1, cy=1, cz=0)
 
+#the freecad object of the aluminum profile
 fco_alux_cubes_y = h_alux_cubes.fco
 # Since the X position is referred to the center, to get the x position of 
 # the profile center we do:
 alux_cubes_pos_x = -alux_cubes_len*(0.5-(CUBE_SEP_R+ cube_w/2.)/cube_block_l)
 alux_cubes_pos_z =  H_CUBES +  cube_w /2.
-# Y position of the 4 aluminum profiles:
+# Y position of the 2 aluminum profiles attached to the cages:
 alux_cubes_y_pos_y =   (cube_w - alux_cubes_w)/2.
 alux_cubes_ny_pos_y = - alux_cubes_y_pos_y
-alux_bboard_pos_y = cube_w/2. + CUBE_VBBOARD_SEP/2.
 # These 2 aluminum profile will hold a normal linear bearing housing
-# Calculation of the bolt separation of the linear bearing housing
 # rod diameter for the linear bearing
-rod_d = 10.
+rod_d = 12.
+rod_r = rod_d/2.
 # dictionary of the linear bearing:
-d_lbhous = kcomp.SCUU_Pr[rod_d]
-d_lbearing = d_lbhous['lbear']
-lbhous_boltsep_w = d_lbhous['bolt_sep_w']
-lbhous_w = d_lbhous['W']
+d_lbearing = kcomp.LMEUU[rod_d]
 
-# alux_leds_in, will be after the sm2 ring of the SM1 to SM2 tube lens adapter
-sm2_l = h_tubelens_c.sm2_l + h_tubelens_c.ring_l
-alux_leds_in_pos_y = (- cube_w/2. - sm2_l - alux_cubes_w/2.
-                      - (lbhous_w-lbhous_boltsep_w)/2.) # to give space to the 
-                      # linear bearing housing
 
-alux_leds_out_pos_y = alux_leds_in_pos_y - lbhous_boltsep_w
 
-# Set the position on X and Z
+# Set the position on X and Z of the aluminum profiles
+# position Y will be different for the 4 of them (they are parallel)
 fco_alux_cubes_y.Placement.Base.x = alux_cubes_pos_x
 fco_alux_cubes_y.Placement.Base.z = alux_cubes_pos_z
 
 ## Thin Linear bearing housing (on the breadboard side)
 
+thlbear_pos_x = -((CUBE_SEP_L-cube_w)/2.+cube_w/2.)
+thlbear_pos_y = alux_cubes_y_pos_y #reference on the bolt->alux_cubes_y_pos_y
+thlbear_pos_z = alux_cubes_pos_z
+
+thlbear_pos = FreeCAD.Vector(thlbear_pos_x, 
+                             thlbear_pos_y,
+                             thlbear_pos_z)
+# distance from the bolt attached to the alux_cubes_y to the rod:
+# half of the width of the aluminum profile + radius of the rod
+# + separation of the axis to the cubes (depends on the cube cover, around 3mm?
+
+sep_rod2cube = 3  # ----------------> CHECK ****************
+sep_rod2alu = rod_r + alux_cubes_w/2. + sep_rod2cube
+
+h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing, 
+                                   fc_fro_ax = VX,
+                                   fc_bot_ax = VZ,
+                                   fc_sid_ax = VY,
+                                   bolts_side = 0,
+                                   refcen_hei = 0,
+                                   refcen_dep = 1,
+                                   refcen_wid = 0, #ref on the bolt
+                                   bolt2cen_wid_n = sep_rod2alu,
+                                   pos = thlbear_pos,
+                                   name = 'thin_linbearhouse_asim_bboard')
+
+
+# distance from the rod to the bolt that attachs the linear bearing
+# house to the aluminum profile alux_cubes_y. On the Y axis
+# there are 2 distances because it is asymmetrical, the shorter one
+rod2thlbearbolt_small_dist_y = h_thlbear_bboard.bolt2cen_wid_p
+rod2thlbearbolt_large_dist_y = h_thlbear_bboard.bolt2cen_wid_n
+
+# Y position of the rod (axis) on the side of the breadboard
+rod_bboard_pos_y = thlbear_pos_y + rod2thlbearbolt_large_dist_y
+# Position of the aluminum profile closest to the breadboard
+alux_bboard_pos_y = rod_bboard_pos_y + rod2thlbearbolt_small_dist_y
+
+
+# the other linear bearing housing, not so thin: bolts_side = 1
+
+# First, set the Y position of this rod, on the middle of the sm1 tubelens:
+sm1_l = h_tubelens_c.sm1_l
+
+# alux_leds_in, will be after the sm2 ring of the SM1 to SM2 tube lens adapter
+sm2_l = h_tubelens_c.sm2_l + h_tubelens_c.ring_l
+
+rod_leds_pos_y = (- cube_w/2. - sm2_l - sm1_l/2.)
+
+# This will be the same position for the housing, having it centered on its
+# axis: bolt_center = 0
+
 lbear1_pos_x = -(CUBE_SEP_L-cube_w/2.)
 lbear2_pos_x = CUBE_SEP_R/2.
-lbear_pos_z = alux_cubes_pos_z 
+lbear_cpos_y = rod_leds_pos_y #cpos, because it is centered
 
-thlbear_pos_y = alux_bboard_pos_y
-thlbear_pos = FreeCAD.Vector(lbear1_pos_x, 
-                             thlbear_pos_y,
-                             lbear_pos_z)
-h_thlbear = parts.ThinLinBearHouse1rail(d_lbearing, 
-                                   fc_slide_axis = VX,
-                                   fc_bot_axis = VZ,
-                                   axis_center = 0,
-                                   mid_center = 1,
-                                   pos = thlbear_pos,
-                                   name = 'thin_linbearhouse_1')
+lbear1_pos = FreeCAD.Vector(lbear1_pos_x, 
+                            lbear_cpos_y,
+                            thlbear_pos_z)
+h_lbear1_led = parts.ThinLinBearHouse(d_lbearing, 
+                                      fc_slide_axis = VX,
+                                      fc_bot_axis = VZ,
+                                      fc_perp_axis = VYN,
+                                      bolts_side = 1,
+                                      axis_center = 0,
+                                      mid_center = 1,
+                                      bolt_center = 0,
+                                      pos = lbear1_pos,
+                                      name = 'linbearhouse_led1')
 
+lbear2_pos = FreeCAD.Vector(lbear2_pos_x, 
+                            lbear_cpos_y,
+                            thlbear_pos_z)
+h_lbear2_led = parts.ThinLinBearHouse(d_lbearing, 
+                                      fc_slide_axis = VX,
+                                      fc_bot_axis = VZ,
+                                      fc_perp_axis = VYN,
+                                      bolts_side = 1,
+                                      axis_center = 0,
+                                      mid_center = 1,
+                                      bolt_center = 0,
+                                      pos = lbear2_pos,
+                                      name = 'linbearhouse_led2')
 
-## Linear bearing housing
+# Z position of the rods
+lbear_axis_h = h_lbear1_led.axis_h
+rod_pos_z = thlbear_pos_z - lbear_axis_h
 
-lbear_axis_h = d_lbhous['axis_h']
-
-lbear_pos_y = alux_leds_in_pos_y - lbhous_boltsep_w/2.
-# the alux_cubes_pos_z is not centered, so it is the same
-
-lbear1_pos = FreeCAD.Vector(lbear1_pos_x,
-                             lbear_pos_y,
-                             lbear_pos_z)
-h_lbhouse_1 = parts.LinBearHouse(d_lbhous, fc_slide_axis=VX, fc_bot_axis=VZ,
-                   axis_center=0, mid_center=1, pos=lbear1_pos,
-                   name = 'linbearhouse_1')
-
-
-lbear2_pos = FreeCAD.Vector(lbear2_pos_x,
-                            lbear_pos_y,
-                            lbear_pos_z)
-h_lbhouse_2 = parts.LinBearHouse(d_lbhous, fc_slide_axis=VX, fc_bot_axis=VZ,
-                   axis_center=0, mid_center=1, pos=lbear2_pos,
-                   name = 'linbearhouse_2')
-
-#Length of the cart (the part between the linear bearings) to calculate the
-# length of the rods, having the stroke
-lbear_length = d_lbhous['L']
-cart_length = lbear2_pos_x - lbear1_pos_x + lbear_length
-
-file_comps.write('# Length of the "cart" block, from the linear bearings: ')
-file_comps.write( str(cart_length) + ' mm \n')
-file_comps.write('\n')
-
-
-min_rod_l = stroke + cart_length + 40
-
-file_comps.write('# Min rod length: strocke + cart length + shaft holder: ')
-file_comps.write( str(min_rod_l) + ' mm \n')
-file_comps.write('\n')
-
-
-
-
-
+rod2lbearbolt_dist_y = h_lbear1_led.boltcen_perp_dist
+# Position of the aluminum profile to hold the linear bearing
+alux_leds_in_pos_y = rod_leds_pos_y + rod2lbearbolt_dist_y
+# Position of the aluminum profile to hold the linear bearing,
+# closest to the leds
+alux_leds_out_pos_y = rod_leds_pos_y - rod2lbearbolt_dist_y
 
 #clone the aluminum profiles, with the X and Y position, and in Y=0
 fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
 fco_alux_cubes_ny.Label = 'alux_cubes_ny'
 fco_alux_cubes_ny.Placement.Base.y = alux_cubes_ny_pos_y
-
 
 fco_alux_bboard = Draft.clone(fco_alux_cubes_y)
 fco_alux_bboard.Label = 'alux_bboard'
@@ -466,6 +499,96 @@ fco_alux_leds_out.Placement.Base.y = alux_leds_out_pos_y
 
 # and set the original aluminun profile position on Y
 fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y                        
+
+# This is not valid because the block cannot go all the way until the 
+# linear bearing, becuase it will hit the led/tubelens
+#Length of the cart (the part between the linear bearings) to calculate the
+# length of the rods, having the stroke
+#lbear_length = h_lbear2_led.L
+#cart_length = lbear2_pos_x - lbear1_pos_x + lbear_length
+
+#file_comps.write('# Length of the "cart" block, from the linear bearings: ')
+#file_comps.write( str(cart_length) + ' mm \n')
+#file_comps.write('\n')
+
+# dictionary of the shaft holder
+d_sh = kcomp.SK[rod_d]
+
+sh_depth = d_sh['L']
+
+#min_rod_l = stroke + cart_length + 40
+# 2.5 the depth of the shaft holder to a little bit extra room to hold it
+min_rod_l = stroke + cube_block_l + 2.5 * sh_depth 
+
+file_comps.write('# Min rod length: stroke + cart length + shaft holder: ')
+file_comps.write( str(min_rod_l) + ' mm \n')
+file_comps.write('\n')
+
+# From the center to the left side we have:
+
+#
+#                              Y
+#          breadboard          :
+#         _____________________:____________
+#                              :       :
+#                              :       + CUBE_VBBOARD_SEP = 27.5
+#      _______      _______  __:___ ...:
+#     |       |    |cen:   ||right |   :
+#     | left  |    |tra:...||..:...|.. : ...........> X   
+#     | cube  |    | cube  || cube |   + cube_w
+#     |_______|    |_______||______|...:
+#                              :
+#   SH=========================:==== rod_led
+#  :  :   :                    :   :    
+#  :  :   :                    :   :
+#  :  :   :                    :   :
+#  :  :...:.....stroke.........:   :
+#  :  : +cube_w/2                  :
+#  :  :....cube_block_l............:
+#  :..:
+#    + sh_depth *1.25
+
+
+#
+#                              Y
+#          breadboard          :
+#         _____________________:____________
+#                              :       :
+#                              :       + CUBE_VBBOARD_SEP = 27.5
+#                           ___:___      _______  ______ ...:
+#                          |       |    |cen:   ||right |   :
+#                          | left  |    |tra:...||..:...|.. : ...........> X   
+#                          | cube  |    | cube  || cube |   + cube_w
+#                          |_______|    |_______||______|...:
+#                              :
+#   SH=========================:=========================SH
+#                          :   :                     :  :  :
+#                          :   :      CUBE_SEP_L     :  :  :
+#                          :   :                     :  :  :
+#                          :   :.........stroke......:..:  :
+#                          :                 cube_w/2 + :  :
+#                          :........cube_block_l........:..:
+#                                                         + sh_depth *1.25
+# so the total length of the rod is:
+# 2.5*sh_depth + 2*stroke + cube_w
+# since: cube_block = stroke + cube_w, then
+# 2.5*sh_depth + stroke + cube_block_l
+# having it centered on Y=0
+
+pos_rod_led = FreeCAD.Vector(0, rod_leds_pos_y, rod_pos_z)
+shp_rod_led = fcfun.shp_cylcenxtr(r= rod_r, h=min_rod_l, normal= VX,
+                                  pos = pos_rod_led)
+fco_rod_led = doc.addObject("Part::Feature", 'rod_led')
+fco_rod_led.Shape = shp_rod_led
+
+pos_rod_bboard = FreeCAD.Vector(0, rod_bboard_pos_y, rod_pos_z)
+shp_rod_bboard = fcfun.shp_cylcenxtr(r= rod_r, h=min_rod_l, normal= VX,
+                                     pos = pos_rod_bboard)
+fco_rod_bboard = doc.addObject("Part::Feature", 'rod_bboard')
+fco_rod_bboard.Shape = shp_rod_bboard
+
+
+
 
 # aluminum profiles to hold the linear bearings.
 # Perpendicular to the previous
