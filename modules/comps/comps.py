@@ -18,6 +18,7 @@ import os
 import Draft;
 import DraftGeomUtils;
 import DraftVecUtils;
+import math;
 #import copy;
 #import Mesh;
 
@@ -76,7 +77,6 @@ class Sk (object):
              'h':23.0, 'A':21.0, 'b': 5.0, 'g':6.0,  'I':20.0,
               'mbolt': 5, 'tbolt': 4} 
     """
-    SK12 = kcomp.SK12
 
     # separation of the upper side (it is not defined). Change it
     # measured for sk12 is 1.2
@@ -91,61 +91,60 @@ class Sk (object):
         self.cx = cx
         self.cy = cy
 
-        if size != 12:
-            logging.warning("only size 12 supported")
-            print ("only size 12 supported")
-            
+        skdict = kcomp.SK.get(size)
+        if skdict == None:
+            logger.warning("Sk size %d not supported", size)
         else:
             doc = FreeCAD.ActiveDocument
             # Total height:
-            sk_z = kcomp.SK12['H'];
+            sk_z = skdict['H'];
             self.TotH = sk_z
             # Total width (Y):
-            sk_y = kcomp.SK12['W'];
-            self.TotW = sk_y
+            sk_w = skdict['W'];
+            self.TotW = sk_w
             # Total depth (x):
-            sk_x = kcomp.SK12['L'];
-            self.TotD = sk_x
+            sk_d = skdict['L'];
+            self.TotD = sk_d
             # Base height
-            sk_base_z = 6;
+            sk_base_h = skdict['g'];
             # center width
-            sk_center_y = 20;
+            sk_center_w = skdict['I'];
             # Axis height:
-            sk_axis_z = 23;
-            self.HoleH = sk_axis_z;
+            sk_axis_h = skdict['h'];
+            self.HoleH = sk_axis_h;
     
             # tightening bolt with added tolerances:
             # Bolt's head radius
             tbolt_head_r = (self.holtol
-                            * kcomp.D912_HEAD_D[kcomp.SK12['tbolt']])/2.0
+                            * kcomp.D912_HEAD_D[skdict['tbolt']])/2.0
             # Bolt's head lenght
             tbolt_head_l = (self.holtol
-                            * kcomp.D912_HEAD_L[kcomp.SK12['tbolt']] )
+                            * kcomp.D912_HEAD_L[skdict['tbolt']] )
             # Mounting bolt radius with added tolerance
-            mbolt_r = self.holtol * kcomp.SK12['mbolt']/2
+            mbolt_r = self.holtol * skdict['mbolt']/2.
     
             # the total dimensions: LxWxH
             # we will cut it
-            total_box = addBox(x = sk_x,
-                               y = sk_y,
+            total_box = addBox(x = sk_d,
+                               y = sk_w,
                                z = sk_z,
                                name = "total_box",
                                cx = False, cy=True)
 
             # what we have to cut from the sides
-            side_box_y = (sk_y - kcomp.SK12['I'])/2
-            side_box_z = sk_z - kcomp.SK12['g']
+            side_box_y = (sk_w - skdict['I'])/2.
+            side_box_z = sk_z - skdict['g']
     
-            side_cut_box_r = addBox (sk_x, side_box_y, side_box_z,
+            side_cut_box_r = addBox (sk_d, side_box_y, side_box_z,
                                      "side_box_r")
             side_cut_pos_r = FreeCAD.Vector(0,
-                                            kcomp.SK12['I']/2,
-                                            kcomp.SK12['g'])
+                                            skdict['I']/2.,
+                                            skdict['g'])
             side_cut_box_r.Placement.Base = side_cut_pos_r
 
-            side_cut_box_l= addBox (sk_x, side_box_y, side_box_z,
+            side_cut_box_l= addBox (sk_d, side_box_y, side_box_z,
                                      "side_box_l")
-            side_cut_pos_l = FreeCAD.Vector(0,-sk_y/2,kcomp.SK12['g'])
+            side_cut_pos_l = FreeCAD.Vector(0,-sk_w/2.,skdict['g'])
             side_cut_box_l.Placement.Base = side_cut_pos_l
 
             # union 
@@ -159,8 +158,8 @@ class Sk (object):
             sk_shape.Tool = side_boxes
 
             # Shaft hole, its height has +2 to make it throughl L all de way
-            shaft_hole = addCyl(kcomp.SK12['d']/2,
-                                sk_x+2,
+            shaft_hole = addCyl(skdict['d']/2.,
+                                sk_d+2,
                                 "shaft_hole")
 
             """
@@ -171,49 +170,47 @@ class Sk (object):
             axis at the base of the cylinder 
             """
             shaft_hole.Placement = FreeCAD.Placement(
-                                         FreeCAD.Vector(-1,0,kcomp.SK12['h']),
+                                         FreeCAD.Vector(-1,0,skdict['h']),
                                          FreeCAD.Rotation(VY,90),
                                          V0)
 
             # the upper sepparation
-            up_sep = addBox( sk_x +2,
+            up_sep = addBox( sk_d +2,
                              self.up_sep_dist,
-                             sk_z-kcomp.SK12['h'] +1,
+                             sk_z-skdict['h'] +1,
                              "up_sep")
             up_sep_pos = FreeCAD.Vector(-1,
                                         -self.up_sep_dist/2,
-                                         kcomp.SK12['h']+1)
+                                         skdict['h']+1)
             up_sep.Placement.Base = up_sep_pos
 
-            """
-             Tightening bolt shaft hole, its height has +2 to make it
-             throughl L all de way
-             kcomp.SK12['tbolt'] is the diameter of the bolt: (M..) M4, ...
-             tbolt_head_r: is the radius of the tightening bolt's head
-             (including tolerance), which its bottom either
-             - is at the middle point between
-               - A: the total height :sk_z
-               - B: the top of the shaft hole: kcomp.SK12['h']+kcomp.SK12['d']/2
-               - so the result will be (A + B)/2
-             or it is aligned with the top of the 12mm shaft, whose height is: 
-                 kcomp.SK12['h']+kcomp.SK12['d']/2
-            """
-            tbolt_shaft = addCyl(kcomp.SK12['tbolt']/2,kcomp.SK12['I']+2,
+            #Tightening bolt shaft hole, its height has +2 to make it
+            #throughl L all de way
+            #skdict['tbolt'] is the diameter of the bolt: (M..) M4, ...
+            #tbolt_head_r: is the radius of the tightening bolt's head
+            #(including tolerance), which its bottom either
+            #- is at the middle point between
+            #  - A: the total height :sk_z
+            #  - B: the top of the shaft hole: skdict['h']+skdict['d']/2
+            #  - so the result will be (A + B)/2
+            #or it is aligned with the top of the 12mm shaft, whose height is: 
+            #    skdict['h']+skdict['d']/2
+            tbolt_shaft = addCyl(skdict['tbolt']/2,skdict['I']+2,
                                       "tbolt_shaft")
-            tbolt_shaft_pos = FreeCAD.Vector(sk_x/2,
-                    kcomp.SK12['I']/2+1,
-                    kcomp.SK12['h']+kcomp.SK12['d']/2+tbolt_head_r/self.holtol)
-                    #(sk_z + kcomp.SK12['h']+kcomp.SK12['d']/2)/2)
+            tbolt_shaft_pos = FreeCAD.Vector(sk_d/2.,
+                            skdict['I']/2.+1,
+                            skdict['h']+skdict['d']/2.+tbolt_head_r/self.holtol)
+                            #(sk_z + skdict['h']+skdict['d']/2.)/2.)
             tbolt_shaft.Placement = FreeCAD.Placement(tbolt_shaft_pos,
                                                  FreeCAD.Rotation(VX,90),
                                                  V0)
 
             # Head of the thigthening bolt
             tbolt_head = addCyl(tbolt_head_r,tbolt_head_l+1, "tbolt_head")
-            tbolt_head_pos = FreeCAD.Vector(sk_x/2,
-                   kcomp.SK12['I']/2+1,
-                   kcomp.SK12['h']+kcomp.SK12['d']/2+tbolt_head_r/self.holtol)
-                   #(sk_z + kcomp.SK12['h']+kcomp.SK12['d']/2)/2)
+            tbolt_head_pos = FreeCAD.Vector(sk_d/2.,
+                           skdict['I']/2.+1,
+                           skdict['h']+skdict['d']/2+tbolt_head_r/self.holtol)
+                           #(sk_z + skdict['h']+skdict['d']/2.)/2.)
             tbolt_head.Placement = FreeCAD.Placement(tbolt_head_pos,
                                          FreeCAD.Rotation(VX,90),
                                          V0)
@@ -234,15 +231,15 @@ class Sk (object):
             sk_shape_w_holes.Tool = fuse_shaft_holes
 
             #Mounting bolts
-            mbolt_sh_r = addCyl(mbolt_r,kcomp.SK12['g']+2, "mbolt_sh_r")
-            mbolt_sh_l = addCyl(mbolt_r,kcomp.SK12['g']+2, "mbolt_sh_l")
+            mbolt_sh_r = addCyl(mbolt_r,skdict['g']+2., "mbolt_sh_r")
+            mbolt_sh_l = addCyl(mbolt_r,skdict['g']+2., "mbolt_sh_l")
 
-            mbolt_sh_r_pos = FreeCAD.Vector(sk_x/2,
-                                            kcomp.SK12['B']/2,
+            mbolt_sh_r_pos = FreeCAD.Vector(sk_d/2,
+                                            skdict['B']/2.,
                                             -1)
 
-            mbolt_sh_l_pos = FreeCAD.Vector(sk_x/2,
-                                            -kcomp.SK12['B']/2,
+            mbolt_sh_l_pos = FreeCAD.Vector(sk_d/2,
+                                            -skdict['B']/2.,
                                             -1)
 
             mbolt_sh_r.Placement.Base = mbolt_sh_r_pos
@@ -265,7 +262,7 @@ class Sk (object):
                 # this is how it is, no rotation
                 rot = FreeCAD.Rotation(VZ,0)
                 if cx == 1: #we want centered on X,bring back the half of depth
-                    xpos = -self.TotD/2.0
+                    xpos = -self.TotD/2.
                 else:
                     xpos = 0 # how it is
                 if cy == 1: # centered on Y, how it is
@@ -296,6 +293,9 @@ class Sk (object):
             sk_final.Tool = mbolts_sh
 
             self.fco = sk_final   # the FreeCad Object
+
+
+
 
 # --------------------------------------------------------------------
 # Creates a Misumi Aluminun Profile 30x30 Series 6 Width 8
@@ -545,6 +545,239 @@ class RectRndBar (object):
         self.fco = rndbar
         
 # ----------- end class RectRndBar ----------------------------------------
+
+
+# ----------- class AluProf ---------------------------------------------
+# Creates a generic aluminum profile 
+#      :----- width ----:
+#      :       slot     :
+#      :      :--:      :
+#      :______:  :______:
+#      |    __|  |__    |
+#      | |\ \      / /| |
+#      |_| \ \____/ / |_| ...........
+#          |        | ......        insquare
+#          |  (  )  | ......indiam  :
+#       _  |  ____  | ..............:
+#      | | / /    \ \ | |
+#      | |/ /_    _\ \| | .... 
+#      |______|  |______| ....thick
+#
+# width:    the Width of the profile, it is squared
+# length:   the length of the bar, the extrusion 
+# thick: the thickness of the side
+# slot: the width of the rail 
+# insquare: the width of the inner square
+# indiam: the diameter of the inner hole. If 0, there is no hole
+# axis      'x', 'y' or 'z'
+#           direction of the bar
+#           'x' will be along the x axis
+#           'y' will be along the y axis
+#           'z' will be vertical
+# cx:     1 if you want the coordinates referenced to the x center of the piece
+#         it can be done because it is a new shape formed from the union
+# cy:     1 if you want the coordinates referenced to the y center of the piece
+# cz:     1 if you want the coordinates referenced to the z center of the piece
+# attributes:
+# the arguments and
+# ax_center : 1 if the profile is centered along its axis. 0 if not
+# face     : the face that has been extruded
+# shp      : the shape
+# fco      : the freecad object
+
+# How rotation y movement works
+
+#  Initial
+#             Y
+#             :
+#             :
+#          _  :  _
+#         |_|_:_|_|
+#   ........|.:.|........ X
+#          _|_:_|_
+#         |_| : |_|
+#             :
+#             :
+#             :
+#
+#
+#  Final                    axis = 'x'  -> Rotation -90 on axis Y: pitch -90
+#             Z             cx = 0      
+#             :             cy = 0      -> Translation Y: width/2
+#             :             cz = 1      -> Translation Z: 0
+#             :  
+#             :_     _ 
+#             |_|___|_|
+#   ..........:.|...|........ Y
+#             :_|___|_
+#             |_|   |_|
+#             :
+#             :
+#             :
+#
+#
+#  Final                    axis = 'x'  -> Rotation -90 on axis Y: pitch -90
+#             Z             cx = 0      
+#             :             cy = 0      -> Translation Y: width/2
+#             :             cz = 0      -> Translation Z: width/2
+#             :  
+#             :_     _ 
+#             |_|___|_|
+#             : |   |
+#             :_|___|_
+#   ..........|_|...|_|.......Y
+#             :
+#             :
+#             :
+#
+#
+#
+#
+
+
+class AluProf (object):
+
+    def __init__ (self, width, length, thick, slot, insquare, 
+                  indiam, axis = 'x',
+                  name = "genaluprof",
+                  cx=False, cy=False, cz=False):
+        doc = FreeCAD.ActiveDocument
+        self.width  = width
+        self.length = length
+        self.thick  = thick
+        self.slot   = slot
+        self.name   = name
+        self.insquare = insquare
+        self.indiam = indiam
+        self.name   = name
+        self.axis = axis
+        self.fcvec_axis = fcfun.getfcvecofname(axis)
+        self.cx = cx
+        self.cy = cy
+        self.cz = cz
+
+        fcvec_axis = self.fcvec_axis
+        
+        # vectors of the points
+        vecpoints = fcfun.aluprof_vec (width, thick, slot, insquare)
+        doc.recompute()
+
+        # wire Face
+        wire_aluprof = fcfun.wire_sim_xy (vecpoints)
+
+
+        # if it is not centered on X, and the axis doesn't go along X
+        if cx == 0 and axis != 'x':
+            posx = width/2.
+        else:
+            posx = 0
+
+        if cy == 0 and axis != 'y':
+            posy = width/2.
+        else:
+            posy = 0
+
+        if cz == 0 and axis != 'z':
+            posz = width/2.
+        else:
+            posz = 0
+
+        if axis == 'x':
+            ax_center = cx
+        elif axis == 'y':
+            ax_center = cy
+        elif axis == 'z':
+            ax_center = cz
+        else:
+            ax_center = 0
+            logger.error("axis %s not defined. Supported: 'x', 'y', 'z', axis")
+
+        self.ax_center = ax_center
+
+        doc.recompute()
+            
+        pos = FreeCAD.Vector(posx,posy,posz)  # Position
+        vec_axis =  fcfun.getfcvecofname(axis)
+       
+        face_ext = Part.Face(wire_aluprof)
+        # since vec2 of calc_rot is referenced to VNZ, vec_facenomal is negated
+        vec_naxis = DraftVecUtils.neg(vec_axis)
+        vrot = fcfun.fc_calc_rot(V0, vec_naxis)
+        face_ext.Placement.Rotation = vrot
+        face_ext.Placement.Base = pos
+
+        # inner hole
+        if indiam > 0 :
+            hole =  Part.makeCircle (indiam/2.,   # Radius
+                                     pos,  # Position
+                                     vec_axis)  # direction
+            wire_hole = Part.Wire(hole)
+            face_hole = Part.Face(wire_hole)
+
+            face_profile = face_ext.cut(face_hole)
+        else:
+            face_profile = face_ext
+
+        shp_profile = fcfun.shp_extrud_face (
+                                 face = face_profile,
+                                 length = length,
+                                 vec_extr_axis = vec_axis,
+                                 centered = ax_center)
+        self.shp = shp_profile
+        fco_profile = doc.addObject("Part::Feature", name)
+        fco_profile.Shape = shp_profile
+        
+        self.fco = fco_profile
+        
+# ----------- end class AluProf ----------------------------------------
+
+# Function that having a dictionary of the aluminum profile, just calls
+# the class AluProf, 
+def getaluprof ( aludict, length, 
+                 axis = 'x',
+                 name = "genaluprof",
+                 cx=False, cy=False, cz=False):
+
+    h_aluprof = AluProf ( width=aludict['w'],
+                               length = length, 
+                               thick = aludict['t'],
+                               slot  = aludict['slot'],
+                               insquare = aludict['insq'], 
+                               indiam   = aludict['indiam'],
+                               axis = axis,
+                               name = name,
+                               cx=cx, cy=cy, cz=cz)
+
+    return (h_aluprof)
+
+
+#cls_aluprof = getaluprof(aludict= kcomp.ALU_MOTEDIS_20I5,
+#                         length=80) 
+#
+#cls_aluprof = getaluprof(aludict= kcomp.ALU_MOTEDIS_20I5,
+#                         axis = 'z',
+#                         length=100) 
+#
+#cls_aluprof = getaluprof(aludict= kcomp.ALU_MOTEDIS_20I5,
+#                         length=40, 
+#                         axis = 'y',
+#                 cx=True, cy=False, cz=False)
+##
+#h_aluprof = getaluprof(aludict= kcomp.ALU_MAKERBEAM_10,
+#                         length=60, 
+#                         axis = 'y',
+#                 cx=True, cy=False, cz=True)
+#
+#h_aluprof = getaluprof(aludict= kcomp.ALU_MAKERBEAM_15,
+#                         length=50, 
+#                         axis = 'x',
+#                 cx=True, cy=True, cz=True)
+#
+#h_aluprof = getaluprof(aludict= kcomp.ALU_OPENBEAM_5,
+#                         length=50, 
+#                         axis = 'y',
+#                 cx=False, cy=True, cz=False)
+
             
 # ----------- NEMA MOTOR
 # Creates NEMA motor including its hole to cut the piece where is going
@@ -943,7 +1176,7 @@ class LinBearingClone (LinBearing):
         if namadd == 1:
             self.name       = h_bearing.name + "_" + name
         else:
-            self.name       = h_bearing.name
+            self.name       = name
         self.axis       = h_bearing.axis
         self.h_disp     = h_bearing.h_disp
         self.r_tol      = h_bearing.r_tol
@@ -1270,6 +1503,242 @@ class T8NutHousing (object):
         t8nuthouse.Tool = nuthouseholes
 
         self.fco = t8nuthouse  # the FreeCad Object
+
+
+
+# ---------- class MisumiMinLeadscrewNut ----------------------
+# L = lead                             :.flan_cut.
+#                                      :         :
+#           __ ..... flan_d            : _______ :
+#          |..|                        :/       \:
+#          |..| ---- bolt_pos_d        | O     O |  bolt_d
+#    ______|  | .... sh_ext_d          |   ___   |
+#   |......|..| ....                   |  /   \  |
+#   |......|..| .... T (thread_d)      | |     | |
+#   |______|  |                        |  \___/  |
+#   :      |..|                        |         |
+#   :      |..|                        | O     O |
+#   :      |__|......                  .\ _____ /.
+#   :      :  :                       .     :     .
+#   :      :  :                      .      :      .
+#   :      :  :                     .       :       .
+#   :      :  :                    .        :        .
+#   :      :  :                             :bolt_ang .
+#   :      :  :
+#   :      :  +------ this is the zero. Plane YZ=0
+#   :      :  :
+#   :      :..:
+#   :       + flan_h
+#   :...H.....:
+#
+#
+#             Z
+#             :
+#             :                           this is rounded
+#           __:                        : _______ :
+#          |..|   Y                    :/       \:
+#          |..|  /                     | O     O |
+#    ______|  | /                      |   ___   | This is flat
+#   |      |  |/                       |  /   \  |
+#  -|------|--|----- nutaxis (X)       | |  x--|-|------ Y
+#   |______|  |                        |  \_:_/  |  cutaxis (z)
+#          |..|                        |    :    |
+#          |..|                        | O  :  O |
+#          |__|                         \ __:__ /
+#             :                             :
+#             :                             :
+#             + Zero. Plane YZ=0            -Z roundflan_axis (-Z) (also (Z)
+#             :
+#             -Z (roundflan_axis
+#
+# Parameters
+# - thread_d: thread diameter
+# - sh_ext_d: exterior diameter of the nut shaft
+# - flan_d :  diameter of flange
+# - H :       height (or length) of the nut
+# - flan_cut: Cut of the flange (compact nut)
+# - bolt_pos_d: Diameter of the position of the bolt holes
+# - bolt_d: Diameter of the position of the bolt holes
+# - bolt_ang: Angle of the position of the bolts, referred to the vertical
+#             in degrees
+# - nutaxis: 'x', '-x', 'y', '-y', 'z', '-z': axis of the leadscrew.
+#             Positive or negative will change the orientation:
+#                                   ___
+#               nutaxis = 'z'      |   |
+#                     :          __|   |__
+#                 ____:____ . . |_________| . . .  z = 0
+#                |__     __|         :
+#                   |   |            :
+#                   |___|          nutaxis = '-z'
+#
+#
+# - cutaxis: 'x', 'y', 'z' : axis parallel the cut of the flange.
+#            it doesn't matter positive or negative, because it is symmetrical
+#            But it would not be an error
+#
+#             Z
+#             :
+#             :
+#           / : \
+#          |  :  |   cutaxis = 'z'
+#          |  :  |
+#          |  :..|...... Y
+#          |     |
+#          |     |
+#          |     |
+#           \ _ /
+#            
+#            
+# - axis_pos: position of the nut along its axis. The position is independent
+#             on the sign of nutaxis. So the sign it is not referenced to
+#             the sign of nutaxis
+
+
+
+class MisMinLScrNut (object):
+
+    def __init__ (self, thread_d, sh_ext_d,
+                  flan_d, H, flan_h, flan_cut, 
+                  bolt_pos_d, bolt_d, bolt_ang = 30,
+                  nutaxis='x',
+                  cutaxis = '-z',
+                  name='lscrew_nut',
+                  axis_pos = 0):
+
+        self.thread_d = thread_d
+        self.sh_ext_d = sh_ext_d
+        self.flan_d = flan_d
+        self.H = H
+        self.flan_h = flan_h
+        self.flan_cut = flan_cut
+        self.bolt_pos_d = bolt_pos_d 
+        self.bolt_d = bolt_d
+        self.bolt_ang = bolt_ang
+        self.bolt_ang_rad = math.radians(bolt_ang)
+        self.nutaxis = nutaxis
+        self.cutaxis = cutaxis
+
+        # to make it independent on the orientation of the nut
+        if nutaxis == '-x' or nutaxis == '-y' or nutaxis == '-z':
+            ax_pos_sign = - axis_pos
+        else:
+            ax_pos_sign = axis_pos
+
+        self.ax_pos_sign = ax_pos_sign
+
+        doc = FreeCAD.ActiveDocument
+        basepos = FreeCAD.Vector(ax_pos_sign, 0,0)
+
+        # Flange Cylinder
+        flange_cyl = fcfun.shp_cyl (r= flan_d/2.,
+                                    h= flan_h,
+                                    normal = VXN, 
+                                    pos = basepos)
+        #Part.show(flange_cyl)
+        # Box that will make the intersection with the flange to make the cut
+        # Since the nut axis is on X, that will be the flan_h
+        # the Cut is on Y
+        flange_box = fcfun.shp_boxcen (
+                               x = flan_h,
+                               y = flan_cut,
+                               z = flan_d,
+                               cx=0, cy=1, cz=1,
+                               pos = FreeCAD.Vector(-flan_h+ax_pos_sign,0,0))
+        #Part.show(flange_box)
+        flange_cut = flange_cyl.common(flange_box)
+        #Part.show(flange_cut)
+        # Nut Cylinder
+        nut_cyl = fcfun.shp_cyl (r = sh_ext_d/2,
+                                 h = H,
+                                 normal = VXN, 
+                                 pos = basepos)
+        nut_shape = nut_cyl.fuse(flange_cut)
+        # ----------------- Hole for the thread
+        thread_hole = fcfun.shp_cylcenxtr (
+                                 r = thread_d/2,
+                                 h = H ,
+                                 normal = VXN, 
+                                 ch = 0,
+                                 xtr_top = 1,
+                                 xtr_bot = 1,
+                                 pos = basepos)
+
+        #  -------- Holes in the flange for the bolts
+        # Position on Axis Z, It will be rotated 30 degrees
+        bolthole_pos_z = FreeCAD.Vector(0,0,bolt_pos_d/2.)
+        # the 4 angles that rotate bolthole_pos_z :
+        angle = self.bolt_ang_rad
+        rot_angles = [angle, -angle, angle + math.pi, -angle + math.pi]
+        bolthole_list = []
+        for angle_i in rot_angles:
+            bolthole_pos_i = DraftVecUtils.rotate(bolthole_pos_z,
+                                                    angle_i,
+                                                    VX)
+            bolthole_i = fcfun.shp_cylcenxtr (r=bolt_d/2.,
+                                              h=flan_h,
+                                              normal= VXN,
+                                              ch=0,
+                                              xtr_top=1,
+                                              xtr_bot=1,
+                                              pos = bolthole_pos_i + basepos)
+            #Part.show(bolthole_i)
+            bolthole_list.append(bolthole_i) 
+
+        # fusion of holes
+        nutholes = thread_hole.multiFuse(bolthole_list)
+
+        # rotation of the nut and the holes before the cut
+        vrot = fcfun.calc_rot(fcfun.getvecofname(nutaxis),
+                              fcfun.getvecofname(cutaxis))
+        nutholes.Placement.Rotation = vrot
+        nut_shape.Placement.Rotation = vrot
+        shp_lscrewnut = nut_shape.cut(nutholes)
+        shp_lscrewnut = shp_lscrewnut.removeSplitter()
+        #Part.show(shp_lscrewnut)
+
+        # Creation of the FreeCAD Object
+
+        fco_lscrewnut = doc.addObject("Part::Feature", name)
+        fco_lscrewnut.Shape = shp_lscrewnut
+        self.fco = fco_lscrewnut
+        self.shp = shp_lscrewnut
+        
+
+        
+
+# creates a misumi miniature leadscrew nut using a dictionary from kcomp
+
+
+def get_mis_min_lscrnut (nutdict,
+                         nutaxis='x',
+                         cutaxis='-z',
+                         name='lscrew_nut',
+                         axis_pos = 0):
+
+    h_lscrew = MisMinLScrNut (
+                              thread_d = nutdict['T'],
+                              sh_ext_d = nutdict['sh_ext_d'],
+                              flan_d   = nutdict['flan_d'],
+                              H        = nutdict['H'],
+                              flan_h   = nutdict['flan_h'],
+                              flan_cut = nutdict['flan_cut'], 
+                              bolt_pos_d = nutdict['bolt_pos_d'],
+                              bolt_d     = nutdict['bolt_d'],
+                              bolt_ang   = nutdict['bolt_ang'],
+                              nutaxis    = nutaxis,
+                              cutaxis    = cutaxis,
+                              name       = name,
+                              axis_pos   = axis_pos)
+
+    return h_lscrew
+
+
+#get_mis_min_lscrnut (kcomp.MIS_LSCRNUT_C_L1_T4, 
+#                     nutaxis = 'y',
+#                     cutaxis = 'x',
+#                     name = 'lscrew_nut',
+#                     axis_pos = 10) 
+
 
 #  -------------------- FlexCoupling
 # Creates a flexible Shaft Coupling

@@ -18,9 +18,48 @@ STOL = TOL / 2.0       # smaller tolerance
 # height of the layer to print. To make some supports, ie: bolt's head
 LAYER3D_H = 0.3  
 
-# ---------------------- Bearings
-LMEUU_L = { 10: 29.0, 12: 32.0 }; #the length of the bearing
-LMEUU_D = { 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
+# ---------------------- linear Bearings
+LMEUU_L = { 8: 25., 10: 29.0, 12: 32.0 }; #the length of the bearing
+LMEUU_D = { 8: 16., 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
+# Large:
+LMELUU_L = {                   12: 57.0 }; #the length of the bearing
+LMELUU_D = { 8: 16., 10: 19.0, 12: 22.0 }; #diamenter of the bearing 
+
+LME8UU = {
+         'Di' : 8,  # interior diameter
+         'De' : LMEUU_D[8], # exterior diameter
+         'L' : LMEUU_L[8] # length
+           }
+
+
+LME10UU = {
+         'Di' : 10,  # interior diameter
+         'De' : LMEUU_D[10], # exterior diameter
+         'L' : LMEUU_L[10] # length
+           }
+
+LME12UU = {
+         'Di' : 12,  # interior diameter
+         'De' : LMEUU_D[12], # exterior diameter
+         'L' : LMEUU_L[12] # length
+           }
+
+LME12LUU = {
+         'Di' : 12,  # interior diameter
+         'De' : LMELUU_D[12], # exterior diameter
+         'L' : LMELUU_L[12] # length
+           }
+
+
+LMEUU = {
+          8 : LME8UU,
+         10 : LME10UU,
+         12 : LME12UU
+        }
+
+LMELUU = {
+         12 : LME12LUU
+        }
 
 
 
@@ -64,6 +103,26 @@ M4_HEAD_R = D912_HEAD_D[4] / 2.0
 M4_HEAD_L = D912_HEAD_L[4] + TOL
 M4_HEAD_R_TOL = M3_HEAD_R + TOL/2.0 # smaller TOL, because it's small
 M4_SHANK_R_TOL = 3 / 2.0 + TOL/2.0
+
+D912_M3 = {
+            'd': 3.,  # diameter of the shank
+            'shank_r_tol' :  3 / 2. + TOL/2.,
+            'head_r' :  M3_HEAD_R,
+            'head_r_tol' :  M3_HEAD_R_TOL,
+            'head_l' :  M3_HEAD_L
+           }
+
+D912_M4 = {
+            'd': 4.,  # diameter of the shank
+            'shank_r_tol' :  4 / 2. + TOL/2.,
+            'head_r' :  M4_HEAD_R,
+            'head_r_tol' :  M4_HEAD_R_TOL,
+            'head_l' :  M4_HEAD_L
+           }
+
+D912 = { 3: D912_M3,
+         4: D912_M4 }
+
 
 # Nut DIN934 dimensions
 """
@@ -177,22 +236,51 @@ WASH_D9021_T  = {
                   8:   2.0,
                  10:   2.5 }
 
+# ------------- UNC Unified Coarse Thread
+# USA and Canada Standard Threads from Unified Thread Standard UTS
+# starts on #0 to #12 and then 1/4, 5/16, ... to 7/8, 1
+# First number is related to the diameter, the other to the pitch
+# for exampple #4-40 is 2.8448mm major diam. 40 tpi pitch
+# https://en.wikipedia.org/wiki/Unified_Thread_Standard
+
+# Major diameter in mm of a UNC thread
+
+UNC_D = {
+            '0' : 1.5240,  # #0
+            '1' : 1.8542,  # #1
+            '2' : 2.1844,
+            '3' : 2.5146,
+            '4' : 2.8448,
+            '5' : 3.1750,
+            '6' : 3.5052,
+            '8' : 4.1656
+         } # it continues to #12 and then 1/4, ...
+
+
+
+
 # ------------- Ball Bearings           -----------------------
 
 # Inner diameter
 BEAR_DI = {
-            608:  8.0,
-            624:  4.0
+            603:  3.0,
+            673:  3.0,
+            624:  4.0,
+            608:  8.0
           }
 
 # Outer diameter
 BEAR_DO = {
-            608: 22.0,
-            624: 13.0
+            603:  9.0,
+            673:  6.0,
+            624: 13.0,
+            608: 22.0
           }
 
 # Thickness (Height)
 BEAR_T  = {
+            603:  5.0,
+            673:  2.5,
             608:  7.0,
             624:  5.0
           }
@@ -237,7 +325,8 @@ class HollowCyl(object):
 # this is a name list from botton to top that shows the component
 # order to make an idler pulley out of washers and bearings
 
-idlepull_name_list = [
+#idlepull_name_list = [
+idpull4_nlist = [
             HollowCyl (part = 'washer', size = 6, kind= 'large'),
             HollowCyl (part = 'washer', size = 4, kind= 'regular'),
             HollowCyl (part = 'bearing', size = 624), # 624ZZ
@@ -245,6 +334,20 @@ idlepull_name_list = [
             HollowCyl (part = 'washer', size = 6, kind= 'large'),
             HollowCyl (part = 'washer', size = 4, kind= 'large')
               ]
+
+idpull3_nlist = [
+            HollowCyl (part = 'washer', size = 4, kind= 'large'),
+            HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+            HollowCyl (part = 'bearing', size = 603), # 603ZZ
+            HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+            HollowCyl (part = 'washer', size = 4, kind= 'large'),
+            HollowCyl (part = 'washer', size = 3, kind= 'large')
+              ]
+
+# idler pulley list will be different depending on the size of the bolt that
+# holds them
+
+idpull_dict = { 3: idpull3_nlist, 4: idpull4_nlist }
 
 # from an idlepull_name_list, returns the maximum diameter of its bearings
 
@@ -256,6 +359,115 @@ def get_idlepull_maxbear_d (idlepull_list):
                 d_maxbear = elem.d_out
     return d_maxbear
     
+
+# ------------------------- Linear bearing housing
+# Similar to SC10UU, but without many the details, just the main dimensions
+#
+#          bolt_d
+#         : : 
+#         _______________                   ..... ________________
+#        |: :   ___   : :|                  :    |.:.:........:.:.|
+#        |: :  /   \  : :|                H +    | : :        : : |
+#        |----|-----|----|----              :    | : :        : : |
+#        |: :  \___/  : :|   + axis_h       :    |.:.:........:.:.| 
+#        |:_:_________:_:|...:              :....|_:_:________:_:_|      
+#        : :           : :                       :  :          :  :
+#        : :...........: :                       :  :..........:  :
+#        :   bolt_sep_w  :                       :   bolt_sep_l   :
+#        :...... W ......:                       :......L.........:
+#
+#
+#         _____________ 
+#        | 0 :     : 0 |
+#        |   :     :   |
+#        |   :     :   |
+#        |   :     :   |
+#        |   :     :   |
+#        |_0_:_____:_0_|
+#
+
+
+SC8UU = {
+        'L'          : 30.,
+        'W'          : 34.,
+        'H'          : 22.,
+        'axis_h'     : 11.,
+        'bolt_sep_l' : 18.,
+        'bolt_sep_w' : 24.,
+        'bolt_d'     : 4.,  # M4
+        'lbear'      : LME8UU  #dictionary with linear bearging dim.
+        }
+
+SC10UU = {
+        'L'          : 35.,
+        'W'          : 40.,
+        'H'          : 26.,
+        'axis_h'     : 13.,
+        'bolt_sep_l' : 21.,
+        'bolt_sep_w' : 28.,
+        'bolt_d'     : 5.,  # M5
+        'lbear'      : LME10UU  #dictionary with linear bearging dim.
+        }
+
+SC12UU = {
+        'L'          : 36.,
+        'W'          : 42.,
+        'H'          : 28.,
+        'axis_h'     : 15.,
+        'bolt_sep_l' : 26.,
+        'bolt_sep_w' : 30.5,
+        'bolt_d'     : 5.,  # M5
+        'lbear'      : LME12UU  #dictionary with linear bearging dim.
+        }
+
+# modified version to print
+SC8UU_Pr = {
+        'L'          : 30.,
+        'W'          : 34.,
+        'H'          : 22.,
+        'axis_h'     : 11.,
+        'bolt_sep_l' : 18.,
+        'bolt_sep_w' : 24.,
+        'bolt_d'     : 3.,  # M3: changed from M4 to M3
+        'lbear'      : LME8UU  #dictionary with linear bearging dim.
+        }
+
+SC10UU_Pr = {
+        'L'          : 35.,
+        'W'          : 40.,
+        'H'          : 26.,
+        'axis_h'     : 13.,
+        'bolt_sep_l' : 21.,
+        'bolt_sep_w' : 28.,
+        'bolt_d'     : 3.,  # M3: changed from M5 to M3
+        'lbear'      : LME10UU  #dictionary with linear bearging dim.
+        }
+
+SC12UU_Pr = {
+        'L'          : 36.,
+        'W'          : 42.,
+        'H'          : 28.,
+        'axis_h'     : 15.,
+        'bolt_sep_l' : 26.,
+        'bolt_sep_w' : 30.5,
+        'bolt_d'     : 3.,  # M3: changed from M5 to M3
+        'lbear'      : LME12UU  #dictionary with linear bearging dim.
+        }
+
+
+SCUU = {
+         8: SC8UU,
+        10: SC10UU,
+        12: SC10UU
+       }
+
+SCUU_Pr = {
+         8: SC8UU_Pr,
+        10: SC10UU_Pr,
+        12: SC10UU_Pr
+       }
+
+
 
 # ----------------------------- NEMA motor dimensions --------
 
@@ -295,13 +507,64 @@ NEMA_BOLT_D  = {
              34:   5.5,
              42:   8.5 }
 
-
+#        _______ .....................................  
+#       |  ___  |                                     :
+#       | / d.\.|.................                    :
+#       | \___/ |  __            :                    + H
+#     __|       |__ /| ...       + h                  :
+#    |_____________|/ ...+L......:....................:
+#    :             :
+#    :......W......:
+#
+#       ....I....
+#       :_______:      _______________________________  
+#       |  ___  |                                     :
+#       | /   \ |      __________                     :
+#       | \___/ |                :                    + H
+#    ___|       |___ ......       + h                  :
+#   |_:___________:_|.....+g ____:____________________:
+#     :           :
+#     :......B....: S: diameter of the 2 thruholes
 
 # ----------------------------- shaft holder SK dimensions --------
+# there are different brands, and are not all the same,
+# Also valid for dold SH
+# A is not necessary, it is just the half of W
+# b is not necessary, it is just (W-B)/2
+# mbolt: is the metric of the mounting bolt
+# tbolt: is the metric of the tightening bolt
+
+SK8 =  { 'd':8.0,  'H':32.8, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
+         'h':20.0,
+         #'A':21.0,
+         #'b': 5.0,
+         'g':6.0,
+         'I':18.0,
+         'mbolt': 5,
+         'tbolt': 4} 
+
+SK10 = { 'd':10.0, 'H':32.8, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
+         'h':20.0,
+         #'A':21.0,
+         #'b': 5.0,
+         'g': 6.0,
+         'I': 18.0,
+         'mbolt': 5,
+         'tbolt': 4} 
 
 SK12 = { 'd':12.0, 'H':37.5, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
-         'h':23.0, 'A':21.0, 'b': 5.0, 'g':6.0,  'I':20.0,
-         'mbolt': 5, 'tbolt': 4} 
+         'h':23.0,
+         #'A':21.0,
+         #'b': 5.0,
+         'g': 6.0,
+         'I': 20.0,
+         'mbolt': 5,  
+         'tbolt': 4} 
+
+
+SK = {    8: SK8,
+         10: SK10,
+         12: SK12 }
 
 # ------------------------- T8 Nut for leadscrew ---------------------
 #   
@@ -345,6 +608,85 @@ T8N_D_T8        = 8.0
 T8N_L           = 15.0
 T8N_FLAN_L      = 3.5
 T8N_SHAFT_OUT   = 1.5
+
+
+
+# ---------- CompactLeadScrewNut ----------------------
+# L = lead                             :.flan_cut.
+#                                      :         :
+#           __ ..... flan_d            : _______ :
+#          |..|                        :/       \:
+#          |..| ---- bolt_pos_d        | O     O |  bolt_d
+#    ______|  | .... sh_ext_d          |   ___   |
+#   |......|..| ....                   |  /   \  | 
+#   |......|..| .... T (thread_d)      | |     | |
+#   |______|  |                        |  \___/  |
+#   :      |..|                        |         |
+#   :      |..|                        | O     O |
+#   :      |__|......                  .\ _____ /.                       
+#   :      :  :                       .     :     .
+#   :      :  :                      .      :      .
+#   :      :  :                     .       :       .
+#   :      :  :                    .        :        .
+#   :      :  :                             :bolt_ang .
+#   :      :  :
+#   :      :  +------ this is the zero. Plane YZ=0
+#   :      :  :
+#   :      :..:
+#   :       + flan_h
+#   :...H.....:
+#
+# Misumi Miniature Lead Screw. compact nut: MSSR
+#
+MIS_LSCRNUT_C_L1_T4 = {
+           'L'         :  1. ,  # lead
+           'T'         :  4. ,  # thread diameter
+           'sh_ext_d'  : 10. ,  # exterior diameter of the nut shaft
+           'flan_d'    : 23. ,  # diameter of flange
+           'H'         : 11.5,  # height (or length) of the nut
+           'flan_h'    :  3.5,  # height (or length) of the flange
+           'flan_cut'  : 15. ,  # Cut of the flange (compact nut)
+           'bolt_pos_d': 15. ,  # Diameter of the position of the bolt holes
+           'bolt_d'    :  2.9,  # Diameter of the bolt holes
+           'bolt_ang'  : 30.    # Angle of the bolts, referred to the vertical
+                       }
+
+MIS_LSCRNUT_C_L1_T6 = {
+           'L'         :  1. ,  # lead
+           'T'         :  6. ,  # thread
+           'sh_ext_d'  : 12. ,  # exterior diameter of the nut shaft
+           'flan_d'    : 26. ,  # diameter of flange
+           'H'         : 14.5,  # height (or length) of the nut
+           'flan_h'    :  3.5,  # height (or length) of the flange
+           'flan_cut'  : 17. ,  # Cut of the flange (compact nut)
+           'bolt_pos_d': 18. ,  # Diameter of the position of the bolt holes
+           'bolt_d'    :  3.4,  # Diameter of the position of the bolt holes
+           'bolt_ang'  : 30.    # Angle of the bolts, referred to the vertical
+                       }
+
+MIS_LSCRNUT_C_L1_T8 = {
+           'L'         :  1. ,  # lead
+           'T'         :  8. ,  # thread
+           'sh_ext_d'  : 14. ,  # exterior diameter of the nut shaft
+           'flan_d'    : 29. ,  # diameter of flange
+           'H'         : 18. ,  # height (or length) of the nut
+           'flan_h'    :  4. ,  # height (or length) of the flange
+           'flan_cut'  : 18. ,  # Cut of the flange (compact nut)
+           'bolt_pos_d': 21. ,  # Diameter of the position of the bolt holes
+           'bolt_d'    :  3.4,  # Diameter of the position of the bolt holes
+           'bolt_ang'  : 30.    # Angle of the bolts, referred to the vertical
+                       }
+
+# MIS: Misumi
+# LSCRNUT: LeadScrew Nue
+# C: Compact
+# Index: Thread diameter
+MIS_LSCRNUT_C  = {
+              4: MIS_LSCRNUT_C_L1_T4,
+              6: MIS_LSCRNUT_C_L1_T6,
+              8: MIS_LSCRNUT_C_L1_T8
+                 }
+
 
 # ------------------------- T8 Nut Housing ---------------------
 
@@ -411,6 +753,65 @@ FLEXSC_RB_L = {
 # Housing: FL(08)
 # Bearing Number: SU(08)
 
+# ------------------------ Aluminum Extrusion Profiles
+# Values and shape may be approximate
+#      :----- width ----:
+#      :       slot     :
+#      :      :--:      :
+#      :______:  :______:
+#      |    __|  |__    |
+#      | |\ \      / /| |
+#      |_| \ \____/ / |_| ...........
+#          |        | ......        insquare
+#          |  (  )  | ......indiam  :
+#       _  |  ____  | ..............:
+#      | | / /    \ \ | |
+#      | |/ /_    _\ \| | .... 
+#      |______|  |______| ....thick
+#
+#
+# width:  w:    the Width of the profile, it is squared
+# thick:  t:   the thickness of the side
+# slot:   slot: the width of the rail 
+# insquare: insq: the width of the inner square
+# indiam:   ind :the diameter of the inner hole
+
+ALU_MOTEDIS_20I5 = {'w'    : 20.,
+                    't'    : 1.8, # aprox measured
+                    'slot' : 5., 
+                    'insq' : 7.30, # 20 - 2*6.35
+                    'indiam' : 4.3 }
+
+# Makerbeam XL. The section differs a lot from the figure
+# Openbeam is also 15, but also very different, even more
+ALU_MAKERBEAM_15 = {'w'    : 15.,
+                    't'    : 1.1, 
+                    'slot' : 3., 
+                    'insq' : 5.7, # It has an inner square of 3
+                    'indiam' : 2.55 }
+
+ALU_MAKERBEAM_10 = {'w'    : 10.,
+                    't'    : 1., 
+                    'slot' : 3., 
+                    'insq' : 4., # 10 - 2*3.
+                    'indiam' : 2.5 }
+
+# NanoBeam 5. The section differs a lot from the figure
+# and it has no inner circle.
+# Maybe later I will make good one, but not for now
+ALU_OPENBEAM_5 = {'w'    : 5.,
+                  't'    : 0.44,  # actually is a triangle (2.479 - 1.605)/2
+                  'slot' : 1.605, 
+                  'insq' : 1.8, # 5 - 2*1.583
+                  'indiam' : 0 }  # No inner circle
+
+# Selection of the profile depending on the width
+
+ALU_PROF = {
+              5: ALU_OPENBEAM_5,
+             10: ALU_MAKERBEAM_10,
+             15: ALU_MAKERBEAM_15,
+             20: ALU_MOTEDIS_20I5 }
 
 # ------------------------ Linear Guides 
 
@@ -437,6 +838,29 @@ SEB15A_R = { 'rw'     : 15., 'rh': 9.5,
               'boltlsep': 40., 'boltwsep' : 0,
               'boltd'   : 3.5, 'bolthd'   : 6. , 'bolthh': 4.5,
               'boltend_sep' : 15.   }
+
+# ------------------ Misumi SEB8
+SEB8_R = { 'rw': 7.,  # W1
+           'rh': 4.7, # H1
+           'boltlsep' : 15.,  # F
+           'boltwsep' : 0,   # in case there are 2 bolt holes
+           'boltd'    : 2.4, # d1
+           'bolthd'   : 4.2, # d2
+           'bolthh'   : 2.3, # h
+           'boltend_sep': 5. #G
+         }
+
+# ------------------ Misumi SEB10
+SEB10_R = {'rw': 5.,  # W1
+           'rh': 5.5, # H1
+           'boltlsep' : 20.,  # F
+           'boltwsep' : 0,   # in case there are 2 bolt holes
+           'boltd'    : 3.5, # d1
+           'bolthd'   : 6.0, # d2
+           'bolthh'   : 3.5, # h
+           'boltend_sep': 7.5 #G
+         }
+
 
 #BLOCK DIMENSIONS
 
@@ -477,9 +901,75 @@ SEB15A_B = {  'bl'  : 42.,
               'boltl'  : 4.  # 
             }
 
+# ------------------ Misumi SEB8 
+SEB8_B = { 'bl'  : 23.6,    # L1
+           'bls' : 13.6, # L2
+           'bw'  : 17.,  # W
+           'bws' : 17.,  # not on the specifications
+           'bh'  : 6.5,  # K: block height, just the block
+           'lh'  : 8.,   # H: linear guide height, with the rail
+           'boltlsep' : 8.,  # C: Bolt separation on the length dimension
+           'boltwsep' : 12.,  # B: Bolt separation on the width dimension
+           'boltd'  : 2.,  # S: Bolt diameter M2
+           'boltl'  : 2.5  # l 
+            }
+
+# ------------------ Misumi SEB10 
+SEB10_B = { 'bl'  : 30.,  # L1
+            'bls' : 19.,  # L2
+            'bw'  : 20.,  # W
+            'bws' : 20.,  # not on the specifications
+            'bh'  : 7.8,  # K: block height, just the block
+            'lh'  : 10.,  # H: linear guide height, with the rail
+            'boltlsep' : 10.,  # C: Bolt separation on the length dimension
+            'boltwsep' : 15.,  # B: Bolt separation on the width dimension
+            'boltd'  : 3.,  # S: Bolt diameter M2
+            'boltl'  : 3.   # l 
+            }
+
 
 SEBWM16 = { 'rail'  : SEBWM16_R,
             'block' : SEBWM16_B}
 
 SEB15A = { 'rail'  : SEB15A_R,
            'block' : SEB15A_B}
+
+SEB8 = { 'rail'  : SEB8_R,
+         'block' : SEB8_B}
+
+# mechanical end stop dimensions
+#
+#                   /
+#                /
+#             /         ____ ..................
+#          /               /                   + D: 6.9 
+#      _/_________________/ .............................
+#     |                   |                  :          :
+#     |                   |                  + H: 10    :
+#     |      O     O      | ....BOLT_H: 2.5  :          + HT
+#     |___________________| ..................          :
+#        |      |      |                     + 4        :
+#        |      |      |    .............................
+#     :      :     :      :
+#     :      :     :      :
+#     :      : 9.5 :      :
+#     :     BOLT_SEP      :
+#     :                   :
+#     :......L:19.6.......:
+#              
+
+ENDSTOP_A = { 'L': 19.6,
+            'H': 10.0,
+            'D':  6.9,
+            'HT': 14.0,
+            'BOLT_SEP' : 9.5,
+            'BOLT_H' : 2.5,
+            'BOLT_D' : 2.5 }
+
+ENDSTOP_B = { 'L': 12.7,
+            'H': 6.4,
+            'D':  5.6,
+            'HT': 9.5,
+            'BOLT_SEP' : 6.5,
+            'BOLT_H' : 1.5,
+            'BOLT_D' : 1.8 }

@@ -167,23 +167,23 @@ vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
                                   pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
                                   name = 'vertical_breadboard')
 
-cage_c = comp_optic.f_cagecube(dcube,
+h_cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_center")
 
-cage_c.BasePlace((0,0,H_CUBES))
+h_cage_c.BasePlace((0,0,H_CUBES))
 
-cage_r = comp_optic.f_cagecube(dcube,
+h_cage_r = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_right")
 
-cage_r.BasePlace((CUBE_SEP_R,0,H_CUBES))
+h_cage_r.BasePlace((CUBE_SEP_R,0,H_CUBES))
 
-cage_l = comp_optic.f_cagecube(dcube,
+h_cage_l = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_left")
 
-cage_l.BasePlace((-CUBE_SEP_L,0,H_CUBES))
+h_cage_l.BasePlace((-CUBE_SEP_L,0,H_CUBES))
        
 
 
@@ -383,6 +383,32 @@ d_lbearing = kcomp.LMEUU[rod_d]
 fco_alux_cubes_y.Placement.Base.x = alux_cubes_pos_x
 fco_alux_cubes_y.Placement.Base.z = alux_cubes_pos_z
 
+## Plates to hold the cagecubes together
+
+plate3cubes_thick = 4.
+
+cubefaceplate = h_cage_c.vec_face(VY)
+
+plate3cubes_cenhole_d = h_tubelens_c.ring_d + TOL
+
+h_plate3cagecubes = parts.Plate3CageCubes (d_cagecube = dcube,
+                                           thick = plate3cubes_thick,
+                                           cube_dist_n = CUBE_SEP_L, 
+                                           cube_dist_p = CUBE_SEP_R, 
+                                           top_h = alux_cubes_w,
+                                           cube_face = cubefaceplate,
+                                           hole_d = plate3cubes_cenhole_d,
+                                           boltatt_n = 6,
+                                           boltatt_d = 3+TOL,
+                                           fc_fro_ax = VY,
+                                           fc_top_ax = VZ,
+                                           fc_sid_ax = VX,
+                                           pos = pos_tubelens_c,
+                                           name = 'Plate3CubesLeds')
+                                           
+
+
+
 ## Thin Linear bearing housing (on the breadboard side)
 
 thlbear_pos_x = -((CUBE_SEP_L-cube_w)/2.+cube_w/2.)
@@ -396,7 +422,7 @@ thlbear_pos = FreeCAD.Vector(thlbear_pos_x,
 # half of the width of the aluminum profile + radius of the rod
 # + separation of the axis to the cubes (depends on the cube cover, around 3mm?
 
-sep_rod2cube = 3  # ----------------> CHECK ****************
+sep_rod2cube = 3  # ----------------> CHECK with Ivan ****************
 sep_rod2alu = rod_r + alux_cubes_w/2. + sep_rod2cube
 
 h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing, 
