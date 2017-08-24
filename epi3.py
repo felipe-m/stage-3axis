@@ -56,6 +56,7 @@ import parts   # import my CAD components to print
 import kcomp_optic  # import optic components constants
 import comp_optic   # import optic components
 import citoparts # import my CAD pieces to be printed
+import beltcl # import belt clamp pieces
 
 from fcfun import V0, VX, VY, VZ, V0ROT, addBox, addCyl, fillet_len
 from fcfun import VXN, VYN, VZN
@@ -476,7 +477,7 @@ h_lbear1_led = parts.ThinLinBearHouse(d_lbearing,
                                       fc_perp_axis = VYN,
                                       bolts_side = 1,
                                       axis_center = 0,
-                                      mid_center = 1,
+                                      mid_center = 1, #centered on slide_axis
                                       bolt_center = 0,
                                       pos = lbear1_pos,
                                       name = 'linbearhouse_led1')
@@ -494,6 +495,8 @@ h_lbear2_led = parts.ThinLinBearHouse(d_lbearing,
                                       bolt_center = 0,
                                       pos = lbear2_pos,
                                       name = 'linbearhouse_led2')
+
+lbear_l = h_lbear1_led.L
 
 # Z position of the rods
 lbear_axis_h = h_lbear1_led.axis_h
@@ -524,7 +527,47 @@ fco_alux_leds_out.Label = 'alux_leds_out'
 fco_alux_leds_out.Placement.Base.y = alux_leds_out_pos_y
 
 # and set the original aluminun profile position on Y
-fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y                        
+fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y
+
+
+# Belt clamps:
+
+bclamp_p_pos_x = lbear2_pos_x + lbear_l/2.
+bclamp_n_pos_x = lbear1_pos_x - lbear_l/2.
+bclamp_pos_y = alux_leds_in_pos_y
+bclamp_pos_z = thlbear_pos_z
+
+beltclamp_p_pos = FreeCAD.Vector(bclamp_p_pos_x, bclamp_pos_y, bclamp_pos_z)
+beltclamp_n_pos = FreeCAD.Vector(bclamp_n_pos_x, bclamp_pos_y, bclamp_pos_z)
+
+h_beltclamp_p = beltcl.BeltClamp (fc_fro_ax = VX,
+                                  fc_top_ax = VZN,
+                                  base_h = 0,
+                                  base_l = 0,
+                                  base_w = 0,
+                                  bolt_d = 3, #M3 bolts
+                                  bolt_csunk = 1,
+                                  ref = 6, #position at the end: backbase
+                                  pos = beltclamp_p_pos,
+                                  extra = 0,
+                                  wfco = 1,
+                                  name = 'bclamp_p')
+                       
+
+h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
+                                  fc_top_ax = VZN,
+                                  base_h = 0,
+                                  base_l = 0,
+                                  base_w = 0,
+                                  bolt_d = 3, #M3 bolts
+                                  bolt_csunk = 1,
+                                  ref = 6, #position at the end: backbase
+                                  pos = beltclamp_n_pos,
+                                  extra = 0,
+                                  wfco = 1,
+                                  name = 'bclamp_n')
+
+                   
 
 # This is not valid because the block cannot go all the way until the 
 # linear bearing, becuase it will hit the led/tubelens
@@ -615,12 +658,11 @@ fco_rod_bboard.Shape = shp_rod_bboard
 
 
 
-
 # aluminum profiles to hold the linear bearings.
 # Perpendicular to the previous
 
 aluy_cubes_w = 15 # maybe 15 is better than 10
-aluy_cubes_len = 100.
+aluy_cubes_len = 150.
 d_aluy_cubes = kcomp.ALU_PROF[aluy_cubes_w]
 
 h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
@@ -634,6 +676,11 @@ aluy_cubes_pos_y = ( - aluy_cubes_len
                      + CUBECEN_VBBOARD_SEP
                      - aluy_cubes_vboard_sep
                      + aluy_cubes_w)
+
+alux_bboard_pos_y
+aluy_cubes_pos_y = (   alux_bboard_pos_y
+                     - aluy_cubes_len
+                     + alux_cubes_w/2.)
 fco_aluy_cubes_x = h_aluy_cubes.fco
 
 aluy_cubes_pos_z = alux_cubes_pos_z +  alux_cubes_w
