@@ -159,7 +159,7 @@ CUBE_VBBOARD_SEP = 27.5
 CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
-vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
+h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
                                   length = V_BREAD_BOARD_L,
                                   width = V_BREAD_BOARD_W,
                                   cl = 0, cw = 1, ch = 0,
@@ -168,28 +168,40 @@ vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
                                   pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
                                   name = 'vertical_breadboard')
 
+
+# color of the different objects
+OPTIC_COLOR = fcfun.CIAN_08
+OPTIC_COLOR_STA = fcfun.GREEN_D07  #Optics that are not moving, static
+LED_COLOR = fcfun.CIAN_05
+ALU_COLOR = fcfun.YELLOW_05
+ALU_COLOR_STA = (0.8, 0.2, 0.2)
+PRINT_COLOR = fcfun.ORANGE
+
+
+h_vbreadboard.color(ALU_COLOR)
+
+
 h_cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_center")
 
 h_cage_c.BasePlace((0,0,H_CUBES))
+h_cage_c.color(OPTIC_COLOR)
 
 h_cage_r = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_right")
 
 h_cage_r.BasePlace((CUBE_SEP_R,0,H_CUBES))
+h_cage_r.color(OPTIC_COLOR)
 
 h_cage_l = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
                                name = "cube_left")
 
 h_cage_l.BasePlace((-CUBE_SEP_L,0,H_CUBES))
+h_cage_l.color(OPTIC_COLOR)
        
-
-
-
-
 
 
 
@@ -208,6 +220,7 @@ h_obj_plate = comp_optic.Lb2cPlate (fc_axis_h = VZ,
                                     fc_axis_l = obj_plate_axis_l,
                                     cl=1,cw=1,ch=0,
                                     pos = obj_plate_pos)
+h_obj_plate.color(OPTIC_COLOR_STA)
 
 # direction of the aluminum profile connected to the plate mounting holes
 # perpendicular to obj_plate_axis_l
@@ -227,6 +240,7 @@ h_alux_obj = comps.getaluprof(d_alu_obj, length=alux_obj_len,
                            axis = alux_obj_axisname,
                            name = 'alux_obj_y',
                            cx=1, cy=1, cz=0)
+h_alux_obj.color(ALU_COLOR_STA)
 
 fco_alux_obj_y = h_alux_obj.fco
 alux_obj_pos_y = obj_plate_pos + FreeCAD.Vector(0,
@@ -237,12 +251,14 @@ fco_alux_obj_ny = Draft.clone(fco_alux_obj_y)
 fco_alux_obj_ny.Label = 'alux_obj_ny'
 fco_alux_obj_ny.Placement.Base.y = (  fco_alux_obj_ny.Placement.Base.y 
                                     - h_obj_plate.cbore_hole_sep_l)
+fco_alux_obj_ny.ViewObject.ShapeColor = ALU_COLOR_STA
 
 aluy_obj_axisname = fcfun.get_nameofbasevec(obj_plate_axis_l)
 h_aluy_obj = comps.getaluprof(d_alu_obj, length=aluy_obj_len,
                            axis = aluy_obj_axisname,
                            name = 'aluy_obj_x',
                            cx=1, cy=1, cz=0)
+h_aluy_obj.color(ALU_COLOR_STA)
 fco_aluy_obj_x = h_aluy_obj.fco
 
 aluy_obj_pos_x = obj_plate_pos + FreeCAD.Vector(
@@ -255,6 +271,7 @@ fco_aluy_obj_nx = Draft.clone(fco_aluy_obj_x)
 fco_aluy_obj_nx.Label = 'aluy_obj_nx'
 fco_aluy_obj_nx.Placement.Base.x = (  fco_aluy_obj_nx.Placement.Base.x 
                                     - (alux_obj_len + alu_obj_w))
+fco_aluy_obj_nx.ViewObject.ShapeColor = ALU_COLOR_STA
 
 
 
@@ -266,17 +283,20 @@ h_tubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VYN,
                              ring = 1,
                              name = 'tubelens_c')
 
+h_tubelens_c.color(OPTIC_COLOR)
 fco_tubelens_c = h_tubelens_c.fco
 
 # the right tubelens
 fco_tubelens_r = Draft.clone(fco_tubelens_c)
 fco_tubelens_r.Label = 'tubelens_r'
 fco_tubelens_r.Placement.Base.x = CUBE_SEP_R
+fco_tubelens_r.ViewObject.ShapeColor = OPTIC_COLOR
 
 # the left tubelens
 fco_tubelens_l = Draft.clone(fco_tubelens_c)
 fco_tubelens_l.Label = 'tubelens_l'
 fco_tubelens_l.Placement.Base.x = - CUBE_SEP_L
+fco_tubelens_l.ViewObject.ShapeColor = OPTIC_COLOR
 
 # Leds connected to the tube lens
 pos_led_c = (  pos_tubelens_c
@@ -285,12 +305,14 @@ pos_led_c = (  pos_tubelens_c
 h_led_c = comp_optic.ThLed30(fc_axis=VY, fc_axis_cable=VZN,
                              pos = pos_led_c, name='led_c')
 
+h_led_c.color(LED_COLOR)
 # the freecad object
 fco_led_c = h_led_c.fco
 # clone to the right
 fco_led_r = Draft.clone(fco_led_c)
 fco_led_r.Label = 'led_r'
 fco_led_r.Placement.Base.x = CUBE_SEP_R
+fco_led_r.ViewObject.ShapeColor = LED_COLOR
 
 # the led on the left is a Prizmatix:
 
@@ -298,6 +320,7 @@ fco_led_r.Placement.Base.x = CUBE_SEP_R
 pos_led_l = pos_led_c + DraftVecUtils.scale(VXN, CUBE_SEP_L)
 
 h_led_l = comp_optic.PrizLed(VY, VZ, pos_led_l, name='led_l_prizmatix')
+h_led_l.color(LED_COLOR)
 
 
 
@@ -315,17 +338,20 @@ h_emitubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VZ,
                              ring = 0,
                              name = 'emitubelens_c')
 
+h_emitubelens_c.color(OPTIC_COLOR)
 fco_emitubelens_c = h_emitubelens_c.fco
 
 # the right emission filter tubelens (on top of the cube)
 fco_emitubelens_r = Draft.clone(fco_emitubelens_c)
 fco_emitubelens_r.Label = 'emitubelens_r'
 fco_emitubelens_r.Placement.Base.x = CUBE_SEP_R
+fco_emitubelens_r.ViewObject.ShapeColor = OPTIC_COLOR
 
 # the left emission tubelens (on top of the cube)
 fco_emitubelens_l = Draft.clone(fco_emitubelens_c)
 fco_emitubelens_l.Label = 'emitubelens_l'
 fco_emitubelens_l.Placement.Base.x = - CUBE_SEP_L
+fco_emitubelens_l.ViewObject.ShapeColor = OPTIC_COLOR
 
 
 # using a 10mm wide aluminum profile to hold the cubes together
@@ -360,6 +386,7 @@ h_alux_cubes = comps.getaluprof(d_alux_cubes, length=alux_cubes_len,
                            axis = 'x',
                            name = 'alux_cubes_y',
                            cx=1, cy=1, cz=0)
+h_alux_cubes.color(ALU_COLOR)
 
 #the freecad object of the aluminum profile
 fco_alux_cubes_y = h_alux_cubes.fco
@@ -406,6 +433,8 @@ h_plate3cagecubes = parts.Plate3CageCubes (d_cagecube = dcube,
                                            fc_sid_ax = VX,
                                            pos = pos_tubelens_c,
                                            name = 'Plate3CubesLeds')
+
+h_plate3cagecubes.color(PRINT_COLOR)
                                            
 
 
@@ -438,6 +467,7 @@ h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing,
                                    pos = thlbear_pos,
                                    name = 'thin_linbearhouse_asim_bboard')
 
+h_thlbear_bboard.color(PRINT_COLOR)
 
 # distance from the rod to the bolt that attachs the linear bearing
 # house to the aluminum profile alux_cubes_y. On the Y axis
@@ -482,6 +512,8 @@ h_lbear1_led = parts.ThinLinBearHouse(d_lbearing,
                                       pos = lbear1_pos,
                                       name = 'linbearhouse_led1')
 
+h_lbear1_led.color(PRINT_COLOR)
+
 lbear2_pos = FreeCAD.Vector(lbear2_pos_x, 
                             lbear_cpos_y,
                             thlbear_pos_z)
@@ -495,6 +527,7 @@ h_lbear2_led = parts.ThinLinBearHouse(d_lbearing,
                                       bolt_center = 0,
                                       pos = lbear2_pos,
                                       name = 'linbearhouse_led2')
+h_lbear2_led.color(PRINT_COLOR)
 
 lbear_l = h_lbear1_led.L
 
@@ -513,18 +546,22 @@ alux_leds_out_pos_y = rod_leds_pos_y - rod2lbearbolt_dist_y
 fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
 fco_alux_cubes_ny.Label = 'alux_cubes_ny'
 fco_alux_cubes_ny.Placement.Base.y = alux_cubes_ny_pos_y
+fco_alux_cubes_ny.ViewObject.ShapeColor = ALU_COLOR
 
 fco_alux_bboard = Draft.clone(fco_alux_cubes_y)
 fco_alux_bboard.Label = 'alux_bboard'
 fco_alux_bboard.Placement.Base.y = alux_bboard_pos_y
+fco_alux_bboard.ViewObject.ShapeColor = ALU_COLOR
 
 fco_alux_leds_in = Draft.clone(fco_alux_cubes_y)
 fco_alux_leds_in.Label = 'alux_leds_in'
 fco_alux_leds_in.Placement.Base.y = alux_leds_in_pos_y
+fco_alux_leds_in.ViewObject.ShapeColor = ALU_COLOR
 
 fco_alux_leds_out = Draft.clone(fco_alux_cubes_y)
 fco_alux_leds_out.Label = 'alux_leds_out'
 fco_alux_leds_out.Placement.Base.y = alux_leds_out_pos_y
+fco_alux_leds_out.ViewObject.ShapeColor = ALU_COLOR
 
 # and set the original aluminun profile position on Y
 fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y
@@ -553,6 +590,7 @@ h_beltclamp_p = beltcl.BeltClamp (fc_fro_ax = VX,
                                   wfco = 1,
                                   name = 'bclamp_p')
                        
+h_beltclamp_p.color(PRINT_COLOR)
 
 h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   fc_top_ax = VZN,
@@ -566,6 +604,7 @@ h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   extra = 0,
                                   wfco = 1,
                                   name = 'bclamp_n')
+h_beltclamp_n.color(PRINT_COLOR)
 
                    
 
@@ -661,7 +700,7 @@ fco_rod_bboard.Shape = shp_rod_bboard
 # aluminum profiles to hold the linear bearings.
 # Perpendicular to the previous
 
-aluy_cubes_w = 15 # maybe 15 is better than 10
+aluy_cubes_w = 10 # maybe 15 is better than 10
 aluy_cubes_len = 150.
 d_aluy_cubes = kcomp.ALU_PROF[aluy_cubes_w]
 
@@ -669,6 +708,7 @@ h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
                            axis = 'y',
                            name = 'aluy_cubes_x',
                            cx=1, cy=0, cz=0)
+h_aluy_cubes.color(ALU_COLOR)
 
 
 aluy_cubes_vboard_sep = 2.5
@@ -690,6 +730,7 @@ fco_aluy_cubes_x.Placement.Base = FreeCAD.Vector(0,
                                                   aluy_cubes_pos_y,
                                                   aluy_cubes_pos_z)
 fco_aluy_cubes_nx = Draft.clone(fco_aluy_cubes_x)
+fco_aluy_cubes_nx.ViewObject.ShapeColor = ALU_COLOR
 aluy_cubes_pos_nx = - CUBE_SEP_L + cube_w/2.
 fco_aluy_cubes_nx.Label = 'aluy_cubes_nx'
 fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
