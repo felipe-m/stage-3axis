@@ -435,9 +435,8 @@ h_plate3cagecubes = parts.Plate3CageCubes (d_cagecube = dcube,
                                            name = 'Plate3CubesLeds')
 
 h_plate3cagecubes.color(PRINT_COLOR)
+h_plate3cagecubes.export_stl()
                                            
-
-
 
 ## Thin Linear bearing housing (on the breadboard side)
 
@@ -468,6 +467,8 @@ h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing,
                                    name = 'thin_linbearhouse_asim_bboard')
 
 h_thlbear_bboard.color(PRINT_COLOR)
+h_thlbear_bboard.export_stl(name='asim_linearbearing_house')
+
 
 # distance from the rod to the bolt that attachs the linear bearing
 # house to the aluminum profile alux_cubes_y. On the Y axis
@@ -528,6 +529,7 @@ h_lbear2_led = parts.ThinLinBearHouse(d_lbearing,
                                       pos = lbear2_pos,
                                       name = 'linbearhouse_led2')
 h_lbear2_led.color(PRINT_COLOR)
+h_lbear2_led.export_stl(name='linearbearing_house')
 
 lbear_l = h_lbear1_led.L
 
@@ -591,6 +593,7 @@ h_beltclamp_p = beltcl.BeltClamp (fc_fro_ax = VX,
                                   name = 'bclamp_p')
                        
 h_beltclamp_p.color(PRINT_COLOR)
+h_beltclamp_p.export_stl(name = 'belt_clamp')
 
 h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   fc_top_ax = VZN,
