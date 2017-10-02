@@ -123,9 +123,11 @@ cube_w = dcube['L']
 H_CUBES = 250.
 # cubes separation, separation between the centers
 # 2 of the cubes are very close
-CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
+#CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
+CUBE_SEP_R = math.ceil(cube_w) + 12.   # Given by Ivan
 # Separation to the left cube larger, to have space to change the beamsplitter
-CUBE_SEP_L = math.ceil(cube_w + 0.7 * cube_w)
+#CUBE_SEP_L = math.ceil(cube_w + 0.7 * cube_w)
+CUBE_SEP_L = math.ceil(cube_w + 71.)
 
 file_comps.write('# Space between central al left cube, to introduce ')
 file_comps.write('# beam splitter')
@@ -221,6 +223,15 @@ h_obj_plate = comp_optic.Lb2cPlate (fc_axis_h = VZ,
                                     cl=1,cw=1,ch=0,
                                     pos = obj_plate_pos)
 h_obj_plate.color(OPTIC_COLOR_STA)
+
+# Diameter of the objective at the end where it is screwed:
+OBJ_D = 69.9
+
+# I don't know the height, what is important is the diameter
+fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= 50,
+                                 name = "objective",
+                                 normal =VZN,
+                                 pos=obj_plate_pos)
 
 # direction of the aluminum profile connected to the plate mounting holes
 # perpendicular to obj_plate_axis_l
@@ -417,25 +428,36 @@ plate3cubes_thick = 4.
 
 cubefaceplate = h_cage_c.vec_face(VY)
 
-plate3cubes_cenhole_d = h_tubelens_c.ring_d + TOL
+#plate3cubes_cenhole_d = h_tubelens_c.ring_d + TOL
 
-h_plate3cagecubes = parts.Plate3CageCubes (d_cagecube = dcube,
+print h_tubelens_c.ring_d + TOL
+file_comps.write('hole tublens ' + str( h_tubelens_c.ring_d + TOL) +'\n')
+file_comps.write('vs 57\n')
+plate3cubes_cenhole_d = 57. # 56 given by ivan
+
+# plate on the side of the leds
+
+h_plate3cagecubes_led = parts.Plate3CageCubes (d_cagecube = dcube,
                                            thick = plate3cubes_thick,
                                            cube_dist_n = CUBE_SEP_L, 
                                            cube_dist_p = CUBE_SEP_R, 
                                            top_h = alux_cubes_w,
                                            cube_face = cubefaceplate,
                                            hole_d = plate3cubes_cenhole_d,
-                                           boltatt_n = 6,
-                                           boltatt_d = 3+TOL,
+                                           boltatt_n = 12,
+                                           boltatt_d = 3,
+                                           sqr_h = 0,
+                                           sqr_w = 0,
                                            fc_fro_ax = VY,
                                            fc_top_ax = VZ,
                                            fc_sid_ax = VX,
+                                           fillet_r = 2.,
+                                           holes_tol = TOL,
                                            pos = pos_tubelens_c,
                                            name = 'Plate3CubesLeds')
 
-h_plate3cagecubes.color(PRINT_COLOR)
-h_plate3cagecubes.export_stl()
+h_plate3cagecubes_led.color(PRINT_COLOR)
+h_plate3cagecubes_led.export_stl()
                                            
 
 ## Thin Linear bearing housing (on the breadboard side)
@@ -468,6 +490,36 @@ h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing,
 
 h_thlbear_bboard.color(PRINT_COLOR)
 h_thlbear_bboard.export_stl(name='asim_linearbearing_house')
+
+
+# plate on the side of the breadboard
+
+plate_sqr_w = h_thlbear_bboard.D + 2 # tolerance 
+plate_sqr_h = h_thlbear_bboard.H + 5 # tolerance to have space to introduce it
+pos_plate_bboard = FreeCAD.Vector(0, cube_w/2. ,H_CUBES)
+
+h_plate3cagecubes_bb = parts.Plate3CageCubes (d_cagecube = dcube,
+                                           thick = 1.5,
+                                           cube_dist_n = CUBE_SEP_L, 
+                                           cube_dist_p = CUBE_SEP_R, 
+                                           top_h = alux_cubes_w,
+                                           cube_face = cubefaceplate,
+                                           hole_d = -1, #no big holes
+                                           boltatt_n = 12,
+                                           boltatt_d = 3,
+                                           sqr_h = plate_sqr_h,
+                                           sqr_w = plate_sqr_w,
+                                           fc_fro_ax = VYN,
+                                           fc_top_ax = VZ,
+                                           fc_sid_ax = VX,
+                                           fillet_r = 2.,
+                                           holes_tol = TOL,
+                                           moreboltholes = 1,
+                                           pos = pos_plate_bboard,
+                                           name = 'Plate3CubesBB')
+
+h_plate3cagecubes_bb.color(PRINT_COLOR)
+h_plate3cagecubes_bb.export_stl()
 
 
 # distance from the rod to the bolt that attachs the linear bearing
@@ -590,6 +642,7 @@ h_beltclamp_p = beltcl.BeltClamp (fc_fro_ax = VX,
                                   pos = beltclamp_p_pos,
                                   extra = 0,
                                   wfco = 1,
+                                  intol = 0.2, #added 0.2, belt didnt fit
                                   name = 'bclamp_p')
                        
 h_beltclamp_p.color(PRINT_COLOR)
@@ -606,6 +659,7 @@ h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   pos = beltclamp_n_pos,
                                   extra = 0,
                                   wfco = 1,
+                                  intol = 0.2,
                                   name = 'bclamp_n')
 h_beltclamp_n.color(PRINT_COLOR)
 
