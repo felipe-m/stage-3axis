@@ -210,28 +210,35 @@ h_cage_l.color(OPTIC_COLOR)
 # Plate to hold the objective
 
 # dictionary of the dimensions of the plate
-d_obj_plate = kcomp_optic.LB2C_PLATE
+#d_obj_plate = kcomp_optic.LB2C_PLATE
+#it is the LCP08/M but it has the same dimensions
+d_obj_plate = kcomp_optic.LCP01M_PLATE
 
 # separation of the plate from the cubes, it has to be tight, but also leave
 # a little bit of room to let the cubes move
 OBJ_PLATE_SEP = 1.
-obj_plate_h = H_CUBES - cube_w/2. - d_obj_plate['thick'] - OBJ_PLATE_SEP
-obj_plate_pos =  FreeCAD.Vector(0,0,obj_plate_h)
+# Z position at its top
+obj_plate_pos_z = H_CUBES - cube_w/2. - OBJ_PLATE_SEP
+obj_plate_pos =  FreeCAD.Vector(0,0,obj_plate_pos_z)
 obj_plate_axis_l = VY
-h_obj_plate = comp_optic.Lb2cPlate (fc_axis_h = VZ,
-                                    fc_axis_l = obj_plate_axis_l,
-                                    cl=1,cw=1,ch=0,
-                                    pos = obj_plate_pos)
+h_obj_plate = comp_optic.lcp01m_plate (fc_axis_h = VZN, #bottom is on top
+                                       fc_axis_m = VYN,
+                                       cm=1,cp=1,ch=0,
+                                       pos = obj_plate_pos)
 h_obj_plate.color(OPTIC_COLOR_STA)
 
 # Diameter of the objective at the end where it is screwed:
 OBJ_D = 69.9
+# the objective is at the bottom of the plate, but the plate has been
+# drawn upsidedown (it doesnt matter which way), so its top position
+# will be its bottom and the objetive will be there
+obj_pos = h_obj_plate.topcen_pos
 
 # I don't know the height, what is important is the diameter
 fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= 50,
                                  name = "objective",
                                  normal =VZN,
-                                 pos=obj_plate_pos)
+                                 pos=obj_pos)
 
 # direction of the aluminum profile connected to the plate mounting holes
 # perpendicular to obj_plate_axis_l
@@ -240,49 +247,43 @@ alux_obj_axisname = fcfun.get_positive_vecname(
                                 fcfun.get_nameofbasevec(alux_obj_axis))
 
 # using a 10mm wide aluminum profile to hold the objective
-alu_obj_w = 10
-d_alu_obj = kcomp.ALU_PROF[alu_obj_w]
+#alu_obj_w = 10
+#d_alu_obj = kcomp.ALU_PROF[alu_obj_w]
 
-
-alux_obj_len = 100.
-aluy_obj_len = 100.
-
-h_alux_obj = comps.getaluprof(d_alu_obj, length=alux_obj_len,
-                           axis = alux_obj_axisname,
-                           name = 'alux_obj_y',
-                           cx=1, cy=1, cz=0)
-h_alux_obj.color(ALU_COLOR_STA)
-
-fco_alux_obj_y = h_alux_obj.fco
-alux_obj_pos_y = obj_plate_pos + FreeCAD.Vector(0,
-                                         h_obj_plate.cbore_hole_sep_l/2.,
-                                         - alu_obj_w)
-fco_alux_obj_y.Placement.Base = alux_obj_pos_y
-fco_alux_obj_ny = Draft.clone(fco_alux_obj_y)
-fco_alux_obj_ny.Label = 'alux_obj_ny'
-fco_alux_obj_ny.Placement.Base.y = (  fco_alux_obj_ny.Placement.Base.y 
-                                    - h_obj_plate.cbore_hole_sep_l)
-fco_alux_obj_ny.ViewObject.ShapeColor = ALU_COLOR_STA
-
-aluy_obj_axisname = fcfun.get_nameofbasevec(obj_plate_axis_l)
-h_aluy_obj = comps.getaluprof(d_alu_obj, length=aluy_obj_len,
-                           axis = aluy_obj_axisname,
-                           name = 'aluy_obj_x',
-                           cx=1, cy=1, cz=0)
-h_aluy_obj.color(ALU_COLOR_STA)
-fco_aluy_obj_x = h_aluy_obj.fco
-
-aluy_obj_pos_x = obj_plate_pos + FreeCAD.Vector(
-                                         alux_obj_len/2. + alu_obj_w/2. ,
-                                         (aluy_obj_len-cube_w)/2,
-                                         - alu_obj_w)
-fco_aluy_obj_x.Placement.Base = aluy_obj_pos_x
-
-fco_aluy_obj_nx = Draft.clone(fco_aluy_obj_x)
-fco_aluy_obj_nx.Label = 'aluy_obj_nx'
-fco_aluy_obj_nx.Placement.Base.x = (  fco_aluy_obj_nx.Placement.Base.x 
-                                    - (alux_obj_len + alu_obj_w))
-fco_aluy_obj_nx.ViewObject.ShapeColor = ALU_COLOR_STA
+#alux_obj_len = 100.
+#aluy_obj_len = 100.
+#h_alux_obj = comps.getaluprof(d_alu_obj, length=alux_obj_len,
+#                           axis = alux_obj_axisname,
+#                           name = 'alux_obj_y',
+#                           cx=1, cy=1, cz=0)
+#h_alux_obj.color(ALU_COLOR_STA)
+#fco_alux_obj_y = h_alux_obj.fco
+#alux_obj_pos_y = obj_plate_pos + FreeCAD.Vector(0,
+#                                         h_obj_plate.cbore_hole_sep_l/2.,
+#                                         - alu_obj_w)
+#fco_alux_obj_y.Placement.Base = alux_obj_pos_y
+#fco_alux_obj_ny = Draft.clone(fco_alux_obj_y)
+#fco_alux_obj_ny.Label = 'alux_obj_ny'
+#fco_alux_obj_ny.Placement.Base.y = (  fco_alux_obj_ny.Placement.Base.y 
+#                                    - h_obj_plate.cbore_hole_sep_l)
+#fco_alux_obj_ny.ViewObject.ShapeColor = ALU_COLOR_STA
+#aluy_obj_axisname = fcfun.get_nameofbasevec(obj_plate_axis_l)
+#h_aluy_obj = comps.getaluprof(d_alu_obj, length=aluy_obj_len,
+#                           axis = aluy_obj_axisname,
+#                           name = 'aluy_obj_x',
+#                           cx=1, cy=1, cz=0)
+#h_aluy_obj.color(ALU_COLOR_STA)
+#fco_aluy_obj_x = h_aluy_obj.fco
+#aluy_obj_pos_x = obj_plate_pos + FreeCAD.Vector(
+#                                         alux_obj_len/2. + alu_obj_w/2. ,
+#                                         (aluy_obj_len-cube_w)/2,
+#                                         - alu_obj_w)
+#fco_aluy_obj_x.Placement.Base = aluy_obj_pos_x
+#fco_aluy_obj_nx = Draft.clone(fco_aluy_obj_x)
+#fco_aluy_obj_nx.Label = 'aluy_obj_nx'
+#fco_aluy_obj_nx.Placement.Base.x = (  fco_aluy_obj_nx.Placement.Base.x 
+#                                    - (alux_obj_len + alu_obj_w))
+#fco_aluy_obj_nx.ViewObject.ShapeColor = ALU_COLOR_STA
 
 
 
@@ -372,7 +373,7 @@ fco_emitubelens_l.ViewObject.ShapeColor = OPTIC_COLOR
 #        breadboard  :
 #       _____________:____________________
 #                    :                   :
-#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_bboard
+#      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_bb
 #                    :                  
 #      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX alux_cubes_y
 #           |    |cen:   ||right |
@@ -409,11 +410,17 @@ alux_cubes_pos_z =  H_CUBES +  cube_w /2.
 alux_cubes_y_pos_y =   (cube_w - alux_cubes_w)/2.
 alux_cubes_ny_pos_y = - alux_cubes_y_pos_y
 # These 2 aluminum profile will hold a normal linear bearing housing
+
+# There rods can be different in size, so we have the rod on the led side
+# and the other on the breadboard side
 # rod diameter for the linear bearing
-rod_d = 12.
-rod_r = rod_d/2.
+rod_bb_d = 10.
+rod_bb_r = rod_bb_d/2.
+rod_led_d = 12.
+rod_led_r = rod_led_d/2.
 # dictionary of the linear bearing:
-d_lbearing = kcomp.LMEUU[rod_d]
+d_lbearing_bb = kcomp.LMEUU[rod_bb_d]
+d_lbearing_led = kcomp.LMEUU[rod_led_d]
 
 
 
@@ -460,78 +467,6 @@ h_plate3cagecubes_led.color(PRINT_COLOR)
 h_plate3cagecubes_led.export_stl()
                                            
 
-## Thin Linear bearing housing (on the breadboard side)
-
-thlbear_pos_x = -((CUBE_SEP_L-cube_w)/2.+cube_w/2.)
-thlbear_pos_y = alux_cubes_y_pos_y #reference on the bolt->alux_cubes_y_pos_y
-thlbear_pos_z = alux_cubes_pos_z
-
-thlbear_pos = FreeCAD.Vector(thlbear_pos_x, 
-                             thlbear_pos_y,
-                             thlbear_pos_z)
-# distance from the bolt attached to the alux_cubes_y to the rod:
-# half of the width of the aluminum profile + radius of the rod
-# + separation of the axis to the cubes (depends on the cube cover, around 3mm?
-
-sep_rod2cube = 3  # ----------------> CHECK with Ivan ****************
-sep_rod2alu = rod_r + alux_cubes_w/2. + sep_rod2cube
-
-h_thlbear_bboard = parts.ThinLinBearHouseAsim(d_lbearing, 
-                                   fc_fro_ax = VX,
-                                   fc_bot_ax = VZ,
-                                   fc_sid_ax = VY,
-                                   bolts_side = 0,
-                                   refcen_hei = 0,
-                                   refcen_dep = 1,
-                                   refcen_wid = 0, #ref on the bolt
-                                   bolt2cen_wid_n = sep_rod2alu,
-                                   pos = thlbear_pos,
-                                   name = 'thin_linbearhouse_asim_bboard')
-
-h_thlbear_bboard.color(PRINT_COLOR)
-h_thlbear_bboard.export_stl(name='asim_linearbearing_house')
-
-
-# plate on the side of the breadboard
-
-plate_sqr_w = h_thlbear_bboard.D + 2 # tolerance 
-plate_sqr_h = h_thlbear_bboard.H + 5 # tolerance to have space to introduce it
-pos_plate_bboard = FreeCAD.Vector(0, cube_w/2. ,H_CUBES)
-
-h_plate3cagecubes_bb = parts.Plate3CageCubes (d_cagecube = dcube,
-                                           thick = 1.5,
-                                           cube_dist_n = CUBE_SEP_L, 
-                                           cube_dist_p = CUBE_SEP_R, 
-                                           top_h = alux_cubes_w,
-                                           cube_face = cubefaceplate,
-                                           hole_d = -1, #no big holes
-                                           boltatt_n = 12,
-                                           boltatt_d = 3,
-                                           sqr_h = plate_sqr_h,
-                                           sqr_w = plate_sqr_w,
-                                           fc_fro_ax = VYN,
-                                           fc_top_ax = VZ,
-                                           fc_sid_ax = VX,
-                                           fillet_r = 2.,
-                                           holes_tol = TOL,
-                                           moreboltholes = 1,
-                                           pos = pos_plate_bboard,
-                                           name = 'Plate3CubesBB')
-
-h_plate3cagecubes_bb.color(PRINT_COLOR)
-h_plate3cagecubes_bb.export_stl()
-
-
-# distance from the rod to the bolt that attachs the linear bearing
-# house to the aluminum profile alux_cubes_y. On the Y axis
-# there are 2 distances because it is asymmetrical, the shorter one
-rod2thlbearbolt_small_dist_y = h_thlbear_bboard.bolt2cen_wid_p
-rod2thlbearbolt_large_dist_y = h_thlbear_bboard.bolt2cen_wid_n
-
-# Y position of the rod (axis) on the side of the breadboard
-rod_bboard_pos_y = thlbear_pos_y + rod2thlbearbolt_large_dist_y
-# Position of the aluminum profile closest to the breadboard
-alux_bboard_pos_y = rod_bboard_pos_y + rod2thlbearbolt_small_dist_y
 
 
 # the other linear bearing housing, not so thin: bolts_side = 1
@@ -551,10 +486,11 @@ lbear1_pos_x = -(CUBE_SEP_L-cube_w/2.)
 lbear2_pos_x = CUBE_SEP_R/2.
 lbear_cpos_y = rod_leds_pos_y #cpos, because it is centered
 
+lbear_pos_z = alux_cubes_pos_z
 lbear1_pos = FreeCAD.Vector(lbear1_pos_x, 
                             lbear_cpos_y,
-                            thlbear_pos_z)
-h_lbear1_led = parts.ThinLinBearHouse(d_lbearing, 
+                            lbear_pos_z)
+h_lbear1_led = parts.ThinLinBearHouse(d_lbearing_led, 
                                       fc_slide_axis = VX,
                                       fc_bot_axis = VZ,
                                       fc_perp_axis = VYN,
@@ -569,8 +505,8 @@ h_lbear1_led.color(PRINT_COLOR)
 
 lbear2_pos = FreeCAD.Vector(lbear2_pos_x, 
                             lbear_cpos_y,
-                            thlbear_pos_z)
-h_lbear2_led = parts.ThinLinBearHouse(d_lbearing, 
+                            lbear_pos_z)
+h_lbear2_led = parts.ThinLinBearHouse(d_lbearing_led, 
                                       fc_slide_axis = VX,
                                       fc_bot_axis = VZ,
                                       fc_perp_axis = VYN,
@@ -585,9 +521,68 @@ h_lbear2_led.export_stl(name='linearbearing_house')
 
 lbear_l = h_lbear1_led.L
 
+# Get the distance from the base of the linear bearing to the rod
+lbear_led_rod_h = h_lbear1_led.axis_h
+file_comps.write('sym linearbearing rod to base: ' + str(lbear_led_rod_h))
+file_comps.write('\n')
+
+## Thin Linear bearing housing (on the breadboard side)
+
+lbear_bb_pos_x = -((CUBE_SEP_L-cube_w)/2.+cube_w/2.)
+lbear_bb_pos_y = alux_cubes_y_pos_y #reference on the bolt->alux_cubes_y_pos_y
+
+lbear_bb_pos = FreeCAD.Vector(lbear_bb_pos_x, 
+                             lbear_bb_pos_y,
+                             lbear_pos_z)
+# distance from the bolt attached to the alux_cubes_y to the rod:
+# half of the width of the aluminum profile + radius of the rod
+# + separation of the axis to the cubes (depends on the cube cover: 3mm?
+sep_rod2cube = 6  # ----------------> CHECK with Ivan ****************
+sep_rod2alu = rod_bb_r + alux_cubes_w/2. + sep_rod2cube
+
+# shaft holders for the rods:
+d_sh_bb = kcomp.SK[int(rod_bb_d)]
+d_sh_led = kcomp.SK[int(rod_led_d)]
+# the distance of the shaft to the shaft holder base 
+sh_led_h = d_sh_led['h']
+sh_bb_h = d_sh_bb['h']
+
+# difference in height of the shaft centers:
+sh_h_dif = sh_led_h - sh_bb_h
+
+#                 lbear_bb                 lbear_led
+#          ....  ___________               __________ ....
+#          :    |                          _____     |    :
+#lbear_bb_rod_h|   _____                 |     |    |    + lbear_led_rod_h
+#          :    |  |     |    ----------- |  O  |---- ....:
+#          :...  --|  O  |----- sh_h_dif  |     |
+#                __|     |__            __|     |__
+#               |___________|          |___________|
+#
+
+lbear_bb_rod_h = lbear_led_rod_h + sh_h_dif 
+
+h_lbear_bb = parts.ThinLinBearHouseAsim(d_lbearing_bb,
+                                   fc_fro_ax = VX,
+                                   fc_bot_ax = VZ,
+                                   fc_sid_ax = VY,
+                                   axis_h = lbear_bb_rod_h,
+                                   bolts_side = 0,
+                                   refcen_hei = 0,
+                                   refcen_dep = 1,
+                                   refcen_wid = 0, #ref on the bolt
+                                   bolt2cen_wid_n = sep_rod2alu,
+                                   pos = lbear_bb_pos,
+                                   name = 'thin_linbearhouse_asym_bboard')
+
+h_lbear_bb.color(PRINT_COLOR)
+h_lbear_bb.export_stl(name='asym_linearbearing_house')
+
+
 # Z position of the rods
-lbear_axis_h = h_lbear1_led.axis_h
-rod_pos_z = thlbear_pos_z - lbear_axis_h
+
+rod_bb_pos_z = lbear_pos_z - lbear_bb_rod_h
+rod_led_pos_z = lbear_pos_z - lbear_led_rod_h
 
 rod2lbearbolt_dist_y = h_lbear1_led.boltcen_perp_dist
 # Position of the aluminum profile to hold the linear bearing
@@ -596,16 +591,28 @@ alux_leds_in_pos_y = rod_leds_pos_y + rod2lbearbolt_dist_y
 # closest to the leds
 alux_leds_out_pos_y = rod_leds_pos_y - rod2lbearbolt_dist_y
 
+# distance from the rod to the bolt that attachs the linear bearing
+# house to the aluminum profile alux_cubes_y. On the Y axis
+# there are 2 distances because it is asymmetrical, the shorter one
+rod2lbearbolt_small_dist_y = h_lbear_bb.bolt2cen_wid_p
+rod2lbearbolt_large_dist_y = h_lbear_bb.bolt2cen_wid_n
+
+# Y position of the rod (axis) on the side of the breadboard
+rod_bb_pos_y = lbear_bb_pos_y + rod2lbearbolt_large_dist_y
+# Position of the aluminum profile closest to the breadboard
+alux_bb_pos_y = rod_bb_pos_y + rod2lbearbolt_small_dist_y
+
+
 #clone the aluminum profiles, with the X and Y position, and in Y=0
 fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
 fco_alux_cubes_ny.Label = 'alux_cubes_ny'
 fco_alux_cubes_ny.Placement.Base.y = alux_cubes_ny_pos_y
 fco_alux_cubes_ny.ViewObject.ShapeColor = ALU_COLOR
 
-fco_alux_bboard = Draft.clone(fco_alux_cubes_y)
-fco_alux_bboard.Label = 'alux_bboard'
-fco_alux_bboard.Placement.Base.y = alux_bboard_pos_y
-fco_alux_bboard.ViewObject.ShapeColor = ALU_COLOR
+fco_alux_bb = Draft.clone(fco_alux_cubes_y)
+fco_alux_bb.Label = 'alux_bboard'
+fco_alux_bb.Placement.Base.y = alux_bb_pos_y
+fco_alux_bb.ViewObject.ShapeColor = ALU_COLOR
 
 fco_alux_leds_in = Draft.clone(fco_alux_cubes_y)
 fco_alux_leds_in.Label = 'alux_leds_in'
@@ -621,12 +628,46 @@ fco_alux_leds_out.ViewObject.ShapeColor = ALU_COLOR
 fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y
 
 
+
+# plate on the side of the breadboard
+
+plate_sqr_w = h_lbear_bb.D + 2 # tolerance 
+plate_sqr_h = h_lbear_bb.H + 5 # tolerance to have space to introduce it
+pos_plate_bb = FreeCAD.Vector(0, cube_w/2. ,H_CUBES)
+
+h_plate3cagecubes_bb = parts.Plate3CageCubes (d_cagecube = dcube,
+                                           thick = plate3cubes_thick,
+                                           cube_dist_n = CUBE_SEP_L, 
+                                           cube_dist_p = CUBE_SEP_R, 
+                                           top_h = alux_cubes_w,
+                                           cube_face = cubefaceplate,
+                                           hole_d = -1, #no big holes
+                                           boltatt_n = 12,
+                                           boltatt_d = 3,
+                                           sqr_h = plate_sqr_h,
+                                           sqr_w = plate_sqr_w,
+                                           fc_fro_ax = VYN,
+                                           fc_top_ax = VZ,
+                                           fc_sid_ax = VX,
+                                           fillet_r = 2.,
+                                           holes_tol = TOL,
+                                           moreboltholes = 1,
+                                           pos = pos_plate_bb,
+                                           name = 'Plate3CubesBB')
+
+h_plate3cagecubes_bb.color(PRINT_COLOR)
+h_plate3cagecubes_bb.export_stl()
+
+
+
+
+
 # Belt clamps:
 
 bclamp_p_pos_x = lbear2_pos_x + lbear_l/2.
 bclamp_n_pos_x = lbear1_pos_x - lbear_l/2.
 bclamp_pos_y = alux_leds_in_pos_y
-bclamp_pos_z = thlbear_pos_z
+bclamp_pos_z = lbear_pos_z
 
 beltclamp_p_pos = FreeCAD.Vector(bclamp_p_pos_x, bclamp_pos_y, bclamp_pos_z)
 beltclamp_n_pos = FreeCAD.Vector(bclamp_n_pos_x, bclamp_pos_y, bclamp_pos_z)
@@ -677,9 +718,9 @@ h_beltclamp_n.color(PRINT_COLOR)
 #file_comps.write('\n')
 
 # dictionary of the shaft holder
-d_sh = kcomp.SK[rod_d]
+#d_sh = kcomp.SK[rod_d]
 
-sh_depth = d_sh['L']
+sh_depth = d_sh_led['L']
 
 #min_rod_l = stroke + cart_length + 40
 # 2.5 the depth of the shaft holder to a little bit extra room to hold it
@@ -740,17 +781,17 @@ file_comps.write('\n')
 # 2.5*sh_depth + stroke + cube_block_l
 # having it centered on Y=0
 
-pos_rod_led = FreeCAD.Vector(0, rod_leds_pos_y, rod_pos_z)
-shp_rod_led = fcfun.shp_cylcenxtr(r= rod_r, h=min_rod_l, normal= VX,
+pos_rod_led = FreeCAD.Vector(0, rod_leds_pos_y, rod_led_pos_z)
+shp_rod_led = fcfun.shp_cylcenxtr(r= rod_led_r, h=min_rod_l, normal= VX,
                                   pos = pos_rod_led)
 fco_rod_led = doc.addObject("Part::Feature", 'rod_led')
 fco_rod_led.Shape = shp_rod_led
 
-pos_rod_bboard = FreeCAD.Vector(0, rod_bboard_pos_y, rod_pos_z)
-shp_rod_bboard = fcfun.shp_cylcenxtr(r= rod_r, h=min_rod_l, normal= VX,
-                                     pos = pos_rod_bboard)
-fco_rod_bboard = doc.addObject("Part::Feature", 'rod_bboard')
-fco_rod_bboard.Shape = shp_rod_bboard
+pos_rod_bb = FreeCAD.Vector(0, rod_bb_pos_y, rod_bb_pos_z)
+shp_rod_bb = fcfun.shp_cylcenxtr(r= rod_bb_r, h=min_rod_l, normal= VX,
+                                     pos = pos_rod_bb)
+fco_rod_bb = doc.addObject("Part::Feature", 'rod_bboard')
+fco_rod_bb.Shape = shp_rod_bb
 
 
 
@@ -774,8 +815,7 @@ aluy_cubes_pos_y = ( - aluy_cubes_len
                      - aluy_cubes_vboard_sep
                      + aluy_cubes_w)
 
-alux_bboard_pos_y
-aluy_cubes_pos_y = (   alux_bboard_pos_y
+aluy_cubes_pos_y = (   alux_bb_pos_y
                      - aluy_cubes_len
                      + alux_cubes_w/2.)
 fco_aluy_cubes_x = h_aluy_cubes.fco
@@ -794,7 +834,117 @@ fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
 fco_aluy_cubes_x.Placement.Base.x = aluy_cubes_pos_x
 
 
+#------ brackets to screw alux and aluy aluminum profiles:
 
+#------ brackets on top of the symmetrical rail (leds' side)
+#aluy_cubes_pos_z are referenced to the lowest point
+br_alu_pos_z = aluy_cubes_pos_z 
+#alux_leds_out_pos_y is centered on y
+br_alu_pos_y = alux_leds_out_pos_y
+br_alu_pos_nx = aluy_cubes_pos_nx + aluy_cubes_w/2
+br_alu_pos_x = aluy_cubes_pos_x - aluy_cubes_w/2
+
+br_alu_nx_pos = FreeCAD.Vector(br_alu_pos_nx, br_alu_pos_y, br_alu_pos_z)
+br_alu_x_pos = FreeCAD.Vector(br_alu_pos_x, br_alu_pos_y, br_alu_pos_z)
+
+alu_led_linbear_sep = 2 * rod2lbearbolt_dist_y
+
+h_br_led_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
+                 alusize_perp = aluy_cubes_w,
+                 alu_sep = alu_led_linbear_sep,
+                 br_perp_thick = 3.,
+                 br_lin_thick = 3.,
+                 bolt_d = 3,
+                 nbolts_lin = 2,
+                 bolt_perp_line = 0,
+                 xtr_bolt_head = 2, 
+                 sunk = 2,
+                 fc_perp_ax = VZ,
+                 fc_lin_ax = VX,
+                 fc_wide_ax = VY,
+                 pos = br_alu_nx_pos,
+                 wfco=1,
+                 name = 'bracket_twin_led_nx')
+h_br_led_nx.color(PRINT_COLOR)
+h_br_led_nx.export_stl()
+
+
+h_br_led_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
+                 alusize_perp = aluy_cubes_w,
+                 alu_sep = alu_led_linbear_sep,
+                 br_perp_thick = 3.,
+                 br_lin_thick = 3.,
+                 bolt_d = 3,
+                 nbolts_lin = 2,
+                 bolt_perp_line = 1,
+                 xtr_bolt_head = 4, 
+                 sunk = 2,
+                 fc_perp_ax = VZ,
+                 fc_lin_ax = VXN,
+                 fc_wide_ax = VY,
+                 pos = br_alu_x_pos,
+                 wfco=1,
+                 name = 'bracket_twin_led_x')
+
+
+h_br_led_x.color(PRINT_COLOR)
+h_br_led_x.export_stl()
+
+print("alu_led_sep: " + str(alu_led_linbear_sep))
+
+
+#------ brackets on top of the asymmetrical rail (bb breadboard side)
+
+#alux_leds_out_pos_y is centered on y
+br_alu_bb_pos_y = alux_cubes_y_pos_y
+
+br_alu_bb_nx_pos = FreeCAD.Vector(br_alu_pos_nx,
+                                    br_alu_bb_pos_y,
+                                    br_alu_pos_z)
+br_alu_bb_x_pos = FreeCAD.Vector(br_alu_pos_x,
+                                   br_alu_bb_pos_y,
+                                   br_alu_pos_z)
+
+alu_bb_linbear_sep = h_lbear_bb.bolt2bolt_wid
+
+h_br_bb_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
+                 alusize_perp = aluy_cubes_w,
+                 alu_sep = alu_bb_linbear_sep,
+                 br_perp_thick = 3.,
+                 br_lin_thick = 3.,
+                 bolt_d = 3,
+                 nbolts_lin = 2,
+                 bolt_perp_line = 0,
+                 xtr_bolt_head = 2, 
+                 sunk = 2,
+                 fc_perp_ax = VZ,
+                 fc_lin_ax = VX,
+                 fc_wide_ax = VY,
+                 pos = br_alu_bb_nx_pos,
+                 wfco=1,
+                 name = 'bracket_twin_bb_nx')
+h_br_bb_nx.color(PRINT_COLOR)
+h_br_bb_nx.export_stl()
+
+h_br_bb_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
+                 alusize_perp = aluy_cubes_w,
+                 alu_sep = alu_bb_linbear_sep,
+                 br_perp_thick = 3.,
+                 br_lin_thick = 3.,
+                 bolt_d = 3,
+                 nbolts_lin = 2,
+                 bolt_perp_line = 1,
+                 xtr_bolt_head = 4, 
+                 sunk = 2,
+                 fc_perp_ax = VZ,
+                 fc_lin_ax = VXN,
+                 fc_wide_ax = VY,
+                 pos = br_alu_bb_x_pos,
+                 wfco=1,
+                 name = 'bracket_twin_bb_x')
+
+h_br_bb_x.color(PRINT_COLOR)
+h_br_bb_x.export_stl()
 
 
 
