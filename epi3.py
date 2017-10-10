@@ -182,6 +182,7 @@ PRINT_COLOR = fcfun.ORANGE
 
 h_vbreadboard.color(ALU_COLOR)
 
+movegroup_list = []
 
 h_cage_c = comp_optic.f_cagecube(dcube,
                                axis_thru_rods= 'z', axis_thru_hole='x',
@@ -203,7 +204,12 @@ h_cage_l = comp_optic.f_cagecube(dcube,
 
 h_cage_l.BasePlace((-CUBE_SEP_L,0,H_CUBES))
 h_cage_l.color(OPTIC_COLOR)
-       
+
+movegroup_list.append(h_cage_c.fco)
+movegroup_list.append(h_cage_r.fco)
+movegroup_list.append(h_cage_l.fco)
+
+
 
 
 
@@ -233,6 +239,8 @@ OBJ_D = 69.9
 # drawn upsidedown (it doesnt matter which way), so its top position
 # will be its bottom and the objetive will be there
 obj_pos = h_obj_plate.topcen_pos
+
+
 
 # I don't know the height, what is important is the diameter
 fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= 50,
@@ -297,18 +305,21 @@ h_tubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VYN,
 
 h_tubelens_c.color(OPTIC_COLOR)
 fco_tubelens_c = h_tubelens_c.fco
+movegroup_list.append(fco_tubelens_c)
 
 # the right tubelens
 fco_tubelens_r = Draft.clone(fco_tubelens_c)
 fco_tubelens_r.Label = 'tubelens_r'
 fco_tubelens_r.Placement.Base.x = CUBE_SEP_R
 fco_tubelens_r.ViewObject.ShapeColor = OPTIC_COLOR
+movegroup_list.append(fco_tubelens_r)
 
 # the left tubelens
 fco_tubelens_l = Draft.clone(fco_tubelens_c)
 fco_tubelens_l.Label = 'tubelens_l'
 fco_tubelens_l.Placement.Base.x = - CUBE_SEP_L
 fco_tubelens_l.ViewObject.ShapeColor = OPTIC_COLOR
+movegroup_list.append(fco_tubelens_l)
 
 # Leds connected to the tube lens
 pos_led_c = (  pos_tubelens_c
@@ -320,11 +331,13 @@ h_led_c = comp_optic.ThLed30(fc_axis=VY, fc_axis_cable=VZN,
 h_led_c.color(LED_COLOR)
 # the freecad object
 fco_led_c = h_led_c.fco
+movegroup_list.append(fco_led_c)
 # clone to the right
 fco_led_r = Draft.clone(fco_led_c)
 fco_led_r.Label = 'led_r'
 fco_led_r.Placement.Base.x = CUBE_SEP_R
 fco_led_r.ViewObject.ShapeColor = LED_COLOR
+movegroup_list.append(fco_led_r)
 
 # the led on the left is a Prizmatix:
 
@@ -333,6 +346,7 @@ pos_led_l = pos_led_c + DraftVecUtils.scale(VXN, CUBE_SEP_L)
 
 h_led_l = comp_optic.PrizLed(VY, VZ, pos_led_l, name='led_l_prizmatix')
 h_led_l.color(LED_COLOR)
+movegroup_list.append(h_led_l.fco)
 
 
 
@@ -352,18 +366,21 @@ h_emitubelens_c = comp_optic.SM1TubelensSm2 (sm1l_size=20, fc_axis = VZ,
 
 h_emitubelens_c.color(OPTIC_COLOR)
 fco_emitubelens_c = h_emitubelens_c.fco
+movegroup_list.append(fco_emitubelens_c)
 
 # the right emission filter tubelens (on top of the cube)
 fco_emitubelens_r = Draft.clone(fco_emitubelens_c)
 fco_emitubelens_r.Label = 'emitubelens_r'
 fco_emitubelens_r.Placement.Base.x = CUBE_SEP_R
 fco_emitubelens_r.ViewObject.ShapeColor = OPTIC_COLOR
+movegroup_list.append(fco_emitubelens_r)
 
 # the left emission tubelens (on top of the cube)
 fco_emitubelens_l = Draft.clone(fco_emitubelens_c)
 fco_emitubelens_l.Label = 'emitubelens_l'
 fco_emitubelens_l.Placement.Base.x = - CUBE_SEP_L
 fco_emitubelens_l.ViewObject.ShapeColor = OPTIC_COLOR
+movegroup_list.append(fco_emitubelens_l)
 
 
 # using a 10mm wide aluminum profile to hold the cubes together
@@ -466,6 +483,7 @@ h_plate3cagecubes_led = parts.Plate3CageCubes (d_cagecube = dcube,
 h_plate3cagecubes_led.color(PRINT_COLOR)
 h_plate3cagecubes_led.export_stl()
                                            
+movegroup_list.append(h_plate3cagecubes_led.fco)
 
 
 
@@ -502,6 +520,9 @@ h_lbear1_led = parts.ThinLinBearHouse(d_lbearing_led,
                                       name = 'linbearhouse_led1')
 
 h_lbear1_led.color(PRINT_COLOR)
+# maybe better to just make an object with the 2
+movegroup_list.append(h_lbear1_led.fco_top)
+movegroup_list.append(h_lbear1_led.fco_bot)
 
 lbear2_pos = FreeCAD.Vector(lbear2_pos_x, 
                             lbear_cpos_y,
@@ -518,6 +539,8 @@ h_lbear2_led = parts.ThinLinBearHouse(d_lbearing_led,
                                       name = 'linbearhouse_led2')
 h_lbear2_led.color(PRINT_COLOR)
 h_lbear2_led.export_stl(name='linearbearing_house')
+movegroup_list.append(h_lbear2_led.fco_top)
+movegroup_list.append(h_lbear2_led.fco_bot)
 
 lbear_l = h_lbear1_led.L
 
@@ -578,6 +601,8 @@ h_lbear_bb = parts.ThinLinBearHouseAsim(d_lbearing_bb,
 h_lbear_bb.color(PRINT_COLOR)
 h_lbear_bb.export_stl(name='asym_linearbearing_house')
 
+movegroup_list.append(h_lbear_bb.fco_top)
+movegroup_list.append(h_lbear_bb.fco_bot)
 
 # Z position of the rods
 
@@ -608,24 +633,29 @@ fco_alux_cubes_ny = Draft.clone(fco_alux_cubes_y)
 fco_alux_cubes_ny.Label = 'alux_cubes_ny'
 fco_alux_cubes_ny.Placement.Base.y = alux_cubes_ny_pos_y
 fco_alux_cubes_ny.ViewObject.ShapeColor = ALU_COLOR
+movegroup_list.append(fco_alux_cubes_ny)
 
 fco_alux_bb = Draft.clone(fco_alux_cubes_y)
 fco_alux_bb.Label = 'alux_bboard'
 fco_alux_bb.Placement.Base.y = alux_bb_pos_y
 fco_alux_bb.ViewObject.ShapeColor = ALU_COLOR
+movegroup_list.append(fco_alux_bb)
 
 fco_alux_leds_in = Draft.clone(fco_alux_cubes_y)
 fco_alux_leds_in.Label = 'alux_leds_in'
 fco_alux_leds_in.Placement.Base.y = alux_leds_in_pos_y
 fco_alux_leds_in.ViewObject.ShapeColor = ALU_COLOR
+movegroup_list.append(fco_alux_leds_in)
 
 fco_alux_leds_out = Draft.clone(fco_alux_cubes_y)
 fco_alux_leds_out.Label = 'alux_leds_out'
 fco_alux_leds_out.Placement.Base.y = alux_leds_out_pos_y
 fco_alux_leds_out.ViewObject.ShapeColor = ALU_COLOR
+movegroup_list.append(fco_alux_leds_out)
 
 # and set the original aluminun profile position on Y
 fco_alux_cubes_y.Placement.Base.y = alux_cubes_y_pos_y
+movegroup_list.append(fco_alux_cubes_y)
 
 
 
@@ -657,6 +687,7 @@ h_plate3cagecubes_bb = parts.Plate3CageCubes (d_cagecube = dcube,
 
 h_plate3cagecubes_bb.color(PRINT_COLOR)
 h_plate3cagecubes_bb.export_stl()
+movegroup_list.append(h_plate3cagecubes_bb.fco)
 
 
 
@@ -688,6 +719,7 @@ h_beltclamp_p = beltcl.BeltClamp (fc_fro_ax = VX,
                        
 h_beltclamp_p.color(PRINT_COLOR)
 h_beltclamp_p.export_stl(name = 'belt_clamp')
+movegroup_list.append(h_beltclamp_p.fco)
 
 h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   fc_top_ax = VZN,
@@ -703,6 +735,7 @@ h_beltclamp_n = beltcl.BeltClamp (fc_fro_ax = VXN,
                                   intol = 0.2,
                                   name = 'bclamp_n')
 h_beltclamp_n.color(PRINT_COLOR)
+movegroup_list.append(h_beltclamp_n.fco)
 
                    
 
@@ -832,6 +865,8 @@ aluy_cubes_pos_nx = - CUBE_SEP_L + cube_w/2.
 fco_aluy_cubes_nx.Label = 'aluy_cubes_nx'
 fco_aluy_cubes_nx.Placement.Base.x = aluy_cubes_pos_nx
 fco_aluy_cubes_x.Placement.Base.x = aluy_cubes_pos_x
+movegroup_list.append(fco_aluy_cubes_nx)
+movegroup_list.append(fco_aluy_cubes_x)
 
 
 #------ brackets to screw alux and aluy aluminum profiles:
@@ -867,6 +902,7 @@ h_br_led_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  name = 'bracket_twin_led_nx')
 h_br_led_nx.color(PRINT_COLOR)
 h_br_led_nx.export_stl()
+movegroup_list.append(h_br_led_nx.fco)
 
 
 h_br_led_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
@@ -889,6 +925,7 @@ h_br_led_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
 
 h_br_led_x.color(PRINT_COLOR)
 h_br_led_x.export_stl()
+movegroup_list.append(h_br_led_x.fco)
 
 print("alu_led_sep: " + str(alu_led_linbear_sep))
 
@@ -925,6 +962,7 @@ h_br_bb_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  name = 'bracket_twin_bb_nx')
 h_br_bb_nx.color(PRINT_COLOR)
 h_br_bb_nx.export_stl()
+movegroup_list.append(h_br_bb_nx.fco)
 
 h_br_bb_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  alusize_perp = aluy_cubes_w,
@@ -945,7 +983,21 @@ h_br_bb_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
 
 h_br_bb_x.color(PRINT_COLOR)
 h_br_bb_x.export_stl()
+movegroup_list.append(h_br_bb_x.fco)
 
+n_movegr = len(movegroup_list)
+mvgroup_l = list(set(movegroup_list))
+n_cl_movegr = len(mvgroup_l)
+# to check if any element has been take twice
+print ("movegroup elements: " + str(n_movegr) + " - " + str(n_cl_movegr))
+
+
+movegroup = doc.addObject("Part::Compound","movegroup")
+movegroup.Links = mvgroup_l
+# movement range: 3 positions
+movegroup.Placement.Base = FreeCAD.Vector(CUBE_SEP_L,0,0)
+movegroup.Placement.Base = FreeCAD.Vector(-CUBE_SEP_R,0,0)
+#movegroup.Placement.Base = FreeCAD.Vector(0,0,0)
 
 
 file_comps.close()

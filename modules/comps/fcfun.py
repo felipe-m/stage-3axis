@@ -2896,19 +2896,6 @@ def shp_filletchamfer_dirs (shp, fc_axis_l, fillet = 1, radius=1):
         #logger.debug('filletchamfer: edge Length: %s ind %s',
         #             edge.Length, edge_ind)
         # get the FreeCAD.Vector with the point
-<<<<<<< HEAD
-        p0 = edge.Vertexes[0].Point
-        p1 = edge.Vertexes[1].Point
-        v_vertex = p1.sub(p0)  #substraction
-        # I could calculate the angle, but I think it will take more
-        # time than normalizing and checking if they are the same
-        v_vertex.normalize()
-        # check if they are the same vector (they are parallel):
-        for naxis in n_axis_list:
-            if ( DraftVecUtils.equals(v_vertex, naxis)):
-                edgelist.append(edge)
-                break # breaks inside this for, but not the outer
-=======
         if len(edge.Vertexes) == 2:
             p0 = edge.Vertexes[0].Point
             p1 = edge.Vertexes[1].Point
@@ -2987,7 +2974,6 @@ def shp_filletchamfer_dirpt (shp, fc_axis = VZ, fc_pt = V0,  fillet = 1,
                          DraftVecUtils.equals(v_vertex_pt, nnorm_neg)):
                         edgelist.append(edge)
                         break #only one
->>>>>>> comps/master
 
     if len(edgelist) != 0:
         if fillet == 1:
@@ -3002,8 +2988,6 @@ def shp_filletchamfer_dirpt (shp, fc_axis = VZ, fc_pt = V0,  fillet = 1,
         return
 
 
-<<<<<<< HEAD
-=======
 def shp_filletchamfer_dirpts (shp, fc_axis, fc_pts,  fillet = 1,
                              radius=1):
     """
@@ -3071,7 +3055,6 @@ def shp_filletchamfer_dirpts (shp, fc_axis, fc_pts,  fillet = 1,
 
 
 
->>>>>>> comps/master
 #  --- Fillet or chamfer edges of a certain length, on a certain axis
 #  --- and a certain coordinate
 #  For a shape
@@ -3887,8 +3870,6 @@ def fc_isonbase (fcv):
             return 0
 
       
-<<<<<<< HEAD
-=======
 
 def fuseshplist (shp_list):
 
@@ -3910,5 +3891,4 @@ def fuseshplist (shp_list):
         return
 
     return (shpfuse)
->>>>>>> comps/master
         

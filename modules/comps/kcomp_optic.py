@@ -128,8 +128,6 @@ LB1CM_PLATE = {
            'cbore_hole_sep_s' : CAGE_CUBE_60['tap_sep_s']
            }
 
-<<<<<<< HEAD
-=======
 
 # LCP01M plate dimensions
 
@@ -147,7 +145,6 @@ LCP01M_PLATE = {
 
 
 
->>>>>>> comps/master
 # 2inch diameter stackabel lens tubes> SM2LXX
 #
 #                     ______________

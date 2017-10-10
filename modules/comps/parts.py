@@ -44,8 +44,6 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(%(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
-=======
 # ----------- class AluProfBracketPerp -----------------------------------
 
 class AluProfBracketPerp (object):
@@ -996,7 +994,6 @@ class AluProfBracketPerpTwin (object):
 #                 name = 'bracket_twin3_perp')
 
 
->>>>>>> comps/master
 
 # ----------- class IdlePulleyHolder ---------------------------
 # Creates a holder for a IdlePulley. Usually made of bolts, washers and bearings
@@ -1303,32 +1300,18 @@ class IdlePulleyHolder (object):
             
             
         
-<<<<<<< HEAD
-"""
-=======
->>>>>>> comps/master
 
-doc = FreeCAD.newDocument()
+#doc = FreeCAD.newDocument()
 
-idp = IdlePulleyHolder( profile_size=30.,
-                        pulleybolt_d=3.,
-                        holdbolt_d = 5,
-<<<<<<< HEAD
-                        above_h = 37.,
-                        mindepth = 27.5,
-                        attach_dir = '-y',
-                        endstop_side = 0,
-                        endstop_posh = 9.,
-                        name = "idlepulleyhold")
-"""
-=======
-                        above_h = 47-15-9.5,
-                        mindepth = 0,
-                        attach_dir = '-y',
-                        endstop_side = 0,
-                        endstop_posh = 0,
-                        name = "idlepulleyhold")
->>>>>>> comps/master
+#idp = IdlePulleyHolder( profile_size=30.,
+#                        pulleybolt_d=3.,
+#                        holdbolt_d = 5,
+#                        above_h = 47-15-9.5,
+#                        mindepth = 0,
+#                        attach_dir = '-y',
+#                        endstop_side = 0,
+#                        endstop_posh = 0,
+#                        name = "idlepulleyhold")
 
 
 
@@ -2612,16 +2595,11 @@ class ThinLinBearHouseAsim (object):
         bolt2cen_dep: float
         bolt2cen_wid_n: float
         bolt2cen_wid_p: float
-<<<<<<< HEAD
-        + --- Dimensions:
-        housing_d, housing_w, housing_h
-=======
         bolt2bolt_wid: bolt2cen_wid_n + bolt2cen_wid_p
         + --- Dimensions:
         D: housing_d
         W: housing_w
         H: housing_h
->>>>>>> comps/master
         + --- FreeCAD objects
         fco_top = top part of the linear bearing housing
         fco_bot = bottom part of the linear bearing housing
@@ -2826,10 +2804,7 @@ class ThinLinBearHouseAsim (object):
         self.bolt2cen_dep = bolt2cen_dep
         self.bolt2cen_wid_n = bolt2cen_wid_n
         self.bolt2cen_wid_p = bolt2cen_wid_p
-<<<<<<< HEAD
-=======
         self.bolt2bolt_wid = bolt2cen_wid_p + bolt2cen_wid_n
->>>>>>> comps/master
         self.nfro_ax = nfro_ax
         self.nbot_ax = nbot_ax
         self.nsid_ax = nsid_ax
@@ -2985,9 +2960,6 @@ class ThinLinBearHouseAsim (object):
         self.fco_bot.Shape.exportStl(stlFileName_bot)
 
 
-
-
-
 #doc = FreeCAD.newDocument()
 #ThinLinBearHouseAsim (kcomp.LMELUU[12],
 #                  fc_fro_ax = VX,
@@ -2998,7 +2970,167 @@ class ThinLinBearHouseAsim (object):
 #                  bolt2cen_wid_n = 0,
 #                  bolt2cen_wid_p = 25)
 
+
+
+# ----------- NemaMotorHolder
+
+class NemaMotorHolder (object):
+
+    """
+
+
+
+         __________________
+        ||                ||
+        || O     __     O ||
+        ||    /      \    ||
+        ||   |   1    |   ||
+        ||    \      /    ||
+        || O     __     O ||
+        ||________________|| .....
+        ||_______2________|| ..... wall_thick
+
+
+
+         ________3_________        3_________________ ....
+        |  ::  :    :  ::  |       |      :     :    |    + motor_thick
+        |__::__:_1__:__::__|       2......:..1..:....|....:..........> fc_axis_n
+        ||                ||       | :              /
+        || ||          || ||       | :           /
+        || ||          || ||       | :        /
+        || ||          || ||       | :      /
+        || ||          || ||       | :   /
+        ||________________||       |_: /
+        ::                         :                 :
+         + reinf_thick             :....tot_d........:
+
+
+                fc_axis_h
+                 :
+         ________:_________ ..................................
+        |  ::  :    :  ::  |                                  :
+        |__::__:_1__:__::__|....................              :
+        ||                ||....+ motor_min_h  :              :
+        || ||          || ||                   :              +tot_h
+        || ||          || ||                   + motor_max_h  :
+        || ||          || ||                   :              :
+        || ||          || ||...................:              :
+        ||________________||..................................:
+        :                  :
+        :.....tot_w........:
+
+        
+       1: ref_axis = 1 & ref_bolt = 0 
+       2: ref_axis = 0 & ref_bolt = 0 
+       --3: ref_axis = 0 & ref_bolt = 0 
+
+    """
+
+    def __init__ (self,
+                  nema_size = 17,
+                  wall_thick = 4.,
+                  motor_thick = 4.,
+                  reinf_thick = 4.,
+                  motor_max_h = 5.,
+                  motor_min_h =10.,
+                  motor_xtr_space = 2., # counting on one side
+                  bolt_wall_d = 4.,
+                  chmf_r = 1.,
+                  fc_axis_h = VZ,
+                  fc_axis_n = VX,
+                  #fc_axis_p = VY,
+                  ref_axis = 1, 
+                  #ref_bolt = 0,
+                  pos = V0,
+                  wfco = 1,
+                  name = 'nema_holder'):
+
+               doc = FreeCAD.ActiveDocument
+
+        # normalize de axis
+        axis_h = DraftVecUtils.scaleTo(fc_axis_h,1)
+        axis_n = DraftVecUtils.scaleTo(fc_axis_n,1)
+        #axis_p = axis_h.cross(axis_n) #perpendicular
+        axis_n_n = axis_n.negative()
+        axis_h_n = axis_h.negative()
+
+        motor_w = kcomp.NEMA_W[nema_size]
+
+        self.axis_h = axis_h
+        self.axis_n = axis_n
+        self.pos = pos
+
+        bolthead_l = kcomp.D912[bolt_wall_d]['head_l']
+        washer_thick = kcomp.WASH_D125_T[bolt_wall_d]
+
+        # making the big box that will contain everything and will be cut
+        tot_h = motor_thick + motor_max_h + 2 * bolt_wall_d
+        tot_w = 2* reinf_thick + motor_w + 2 * motor_xtr_space
+        tot_d = (   wall_thick + motor_w + motor_xtr_space
+                  + bolthead_l + washer_thick)
+
+        # getting the offset of the reference
+        # distance of the motor axis to de wall
+        motax2wall_dist = (wall_thick + motor_w/2. + motor_xtr_space
+                               + bolthead_l + washer_thick)
+        if ref_axis == 1:
+            ref2motax = V0  #point 1
+            ref2motaxwall = DraftVecUtils.scale(axis_n_n, motax2wall_dist) 
+        else:
+            ref2motax = DraftVecUtils.scale(axis_n, motax2wall_dist)
+            ref2motaxwall = V0 # point 2
+
+        # point centered on the symmetrical plane, on top of axis_h and
+        # on the wall (pint 3)
+        ref2topwallcent = (  ref2motaxwall
+                             + DraftVecUtils.scale(axis_h, motor_thick))
+        topwallcent_pos = pos + ref2topwallcent
+
+        # make the whole box:
+        shp_box = fcfun.shp_box_dir (box_w = tot_w,
+                                     box_d = tot_d,
+                                     box_h = tot_h,
+                                     fc_axis_h = axis_h_n,
+                                     fc_axis_d = axis_n,
+                                     cw=1, cd=0, ch=0, pos = topwallcent_pos)
+
+        # chamfer of the box to make a 'triangular' reinforcement
+        chmf_reinf_r = min(tot_d- wall_thick, tot_h-motor_thick)
+        shp_box = fcfun.shp_filletchamfer_dir(shp_box, axis_p, fillet=0,
+                                              radius = chmf_reinf_r)
+        doc.recompute()
  
+
+        shp_box = shp_motorholder
+        if wfco == 1:
+            # a freeCAD object is created
+            fco_motorholder = doc.addObject("Part::Feature", name )
+            fco_motorholder.Shape = shp_motorholder
+            self.fco = fco_motorholder
+
+
+
+
+doc = FreeCAD.newDocument()
+NemaMotorHolder ( self,
+                  nema_size = 17,
+                  wall_thick = 4.,
+                  motor_thick = 4.,
+                  reinf_thick = 4.,
+                  motor_max_h = 5.,
+                  motor_min_h =10.,
+                  motor_xtr_space = 2., # counting on one side
+                  bolt_wall_d = 4.,
+                  chmf_r = 1.,
+                  fc_axis_h = VZ,
+                  fc_axis_n = VX,
+                  #fc_axis_p = VY,
+                  ref_axis = 1, 
+                  #ref_bolt = 0,
+                  pos = V0,
+                  wfco = 1,
+                  name = 'nema_holder'):
+
 
 # ----------- Linear bearing housing 
 
@@ -3011,15 +3143,6 @@ class Plate3CageCubes (object):
                                :      /
         _______________________:_____/__________..............
        | O            O        :  O /         O |--top_h/2   + top_h
-<<<<<<< HEAD
-       |..........        .....:..... ..........|..:.........:
-       |o  ___  o:        :o  _:_ /o: :o  ___  o|
-       |  /   \  :        :  / :.\..:.:. /...\..|..... fc_sid_ax
-       |  \___/  :        :  \___/  : :  \___/  |
-       |o_______o:________:o_______o:_:o_______o|
-          :   :
-          :. .:
-=======
        |..........  ____  .....:..... ..........|..:.........:
        |o  ___  o: |SQR | :o  _:_ /o: :o  ___  o|
        |  /   \  : |____| :  / :.\..:.:. /...\..|..... fc_sid_ax
@@ -3027,7 +3150,6 @@ class Plate3CageCubes (object):
        |o_______o:________:o_______o:_:o_______o|
           :   :    :....:
           :. .:      + sqr_w
->>>>>>> comps/master
             + hole_d
                              fc_fro_ax
                                :
@@ -3042,11 +3164,8 @@ class Plate3CageCubes (object):
             :.... cube_dist_n..:...........:
                                      + cube_dist_p
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> comps/master
     Thruholes of the bolts are not drawn
 
     The position of the plate: pos, is referenced to the center of the
@@ -3089,10 +3208,6 @@ class Plate3CageCubes (object):
                X: take this value, since there may be something attached,
                   such as a tubelens, which may have a ring that makes
                   necesary to have larger diameter hole
-<<<<<<< HEAD
-        boltatt_n: number of bolt holes on the extra top side
-        boltatt_d: diameter of the bolt holes on the top side
-=======
                -1: no hole
         boltatt_n: number of bolt holes on the extra top side
         boltatt_d: diameter of the bolt holes on the top side
@@ -3103,19 +3218,15 @@ class Plate3CageCubes (object):
                between cubes. It is made in line with the top of the cubes
                centered on the width space
                if 0: takes all the space of the space
->>>>>>> comps/master
         fc_fro_ax: FreeCAD.Vector pointing to the direction of the cage
                cubes, and it is on the surface touching the cubes
         fc_top_ax: FreeCAD.Vector pointing to the top, where there is an
                extra length (top_h) to hold an aluminum profile
         fc_sid_ax: FreeCAD.Vector pointing to the side p (positive)
-<<<<<<< HEAD
-=======
         fillet_r: radius of the fillet of the corners, if 0, no fillet
         holes_tol : Add tolerance for the holes, it seems that even when milled
                 it is needed
         moreboltholes : if more bolt holes are made to attach things
->>>>>>> comps/master
         pos: FreeCAD.Vector with the position of the reference. 
                Center of the hole of the middle plate, on the face touching
                the cagecube
@@ -3137,12 +3248,6 @@ class Plate3CageCubes (object):
                  cube_face = kcomp_optic.ROD_SCREWS,
                  hole_d = 0, 
                  boltatt_n = 6, 
-<<<<<<< HEAD
-                 boltatt_d = 3+TOL, 
-                 fc_fro_ax = VX,
-                 fc_top_ax = VZ,
-                 fc_sid_ax = VY,
-=======
                  boltatt_d = 3, 
                  sqr_h = 0,
                  sqr_w = 0,
@@ -3152,7 +3257,6 @@ class Plate3CageCubes (object):
                  fillet_r = 1.,
                  holes_tol = 0,
                  moreboltholes = 0,
->>>>>>> comps/master
                  pos = V0,
                  name = 'Plate3CageCubes'
                 ):
@@ -3185,11 +3289,8 @@ class Plate3CageCubes (object):
         plate_w = cube_dist_n + cube_dist_p + cage_w
         plate_h = cage_w + top_h
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> comps/master
         # the center of the plate on the fc_top_ax and tc_sid_ax vectors
         platecen_pos = ( pos
                   + DraftVecUtils.scale(ntop_ax,top_h/2.)
@@ -3203,55 +3304,6 @@ class Plate3CageCubes (object):
                                      cw=1, cd=1, ch=0,
                                      pos = platecen_pos)
 
-<<<<<<< HEAD
-        # diameter of the big holes:
-        if cube_face == self.ROD_SCREWS:
-            cube_hole_d = d_cagecube['thru_thread_d']
-            bolt_d = d_cagecube['rod_thread_d'] + TOL
-        elif cube_face == self.THRU_RODS:
-            cube_hole_d = d_cagecube['thru_thread_d']
-            bolt_d = d_cagecube['thru_rod_d']
-        elif cube_face == self.THRU_HOLE:
-            cube_hole_d = d_cagecube['thru_hole_d']
-            bolt_d = d_cagecube['rod_thread_d'] + TOL
-        else:
-            logger.debug("cube_face not supported %s", cube_face)
-            cube_hole_d = d_cagecube['thru_thread_d']
-            bolt_d = d_cagecube['rod_thread_d'] + TOL
-
-        bolt_r = bolt_d/2.
-
-        # check if the diameter is larger than the cage diameter
-        if hole_d == 0:
-            hole_d = cube_hole_d
-        elif hole_d < cube_hole_d:
-            logger.debug("hole_d smaller than cube hole, taking the minimum %s",
-                         cube_hole_d)
-            hole_d = cube_hole_d
-        else:
-            hole_d = hole_d
-        hole_r = hole_d/2.
-        # central big hole (it is on pos)
-        shp_bighole_cen = fcfun.shp_cylcenxtr (r= hole_r, h = thick,
-                                               normal = nfro_ax_n,
-                                               ch=0, xtr_top=1, xtr_bot=1,
-                                               pos = pos)
-
-        # position of the cage on the positive and negative sides:
-        pos_cage_p = pos + DraftVecUtils.scale(nsid_ax,cube_dist_p)
-        pos_cage_n = pos + DraftVecUtils.scale(nsid_ax,-cube_dist_n)
-
-        shp_bighole_p = fcfun.shp_cylcenxtr (r= hole_r, h = thick,
-                                             normal = nfro_ax_n,
-                                             ch=0, xtr_top=1, xtr_bot=1,
-                                             pos = pos_cage_p)
-
-        shp_bighole_n = fcfun.shp_cylcenxtr (r= hole_r, h = thick,
-                                             normal = nfro_ax_n,
-                                             ch=0, xtr_top=1, xtr_bot=1,
-                                             pos = pos_cage_n)
-        shp_bigholes = shp_bighole_cen.multiFuse([shp_bighole_p, shp_bighole_n])
-=======
         if fillet_r > 0:
             # fillet the four corners
             shp_box = fcfun.shp_filletchamfer_dir(shp_box, fc_axis = fc_fro_ax,
@@ -3310,7 +3362,6 @@ class Plate3CageCubes (object):
                                shp_bighole_n])
 
         ################
->>>>>>> comps/master
 
         cagebolt_sep = d_cagecube['thru_rod_sep']
         cagebolt2cen = cagebolt_sep /2.
@@ -3319,10 +3370,6 @@ class Plate3CageCubes (object):
         bolt_pos_sid_p = DraftVecUtils.scale(nsid_ax, cagebolt2cen)
         bolt_pos_sid_n = DraftVecUtils.scale(nsid_ax, -cagebolt2cen)
 
-<<<<<<< HEAD
-        boltholes_list = []
-=======
->>>>>>> comps/master
         for pos_i in [pos, pos_cage_p, pos_cage_n]:
             for top_add in [bolt_pos_top_p, bolt_pos_top_n]:
                 for sid_add in [bolt_pos_sid_p, bolt_pos_sid_n]:
@@ -3331,11 +3378,7 @@ class Plate3CageCubes (object):
                                              normal = nfro_ax_n,
                                              ch=0, xtr_top=1, xtr_bot=1,
                                              pos = pos_boltcage)
-<<<<<<< HEAD
-                    boltholes_list.append(shp_boltcage)
-=======
                     holes_list.append(shp_boltcage)
->>>>>>> comps/master
 
         # bolts to attach the aluminum profile:
         if boltatt_n < 2:
@@ -3357,12 +3400,6 @@ class Plate3CageCubes (object):
                                              ch=0, xtr_top=1, xtr_bot=1,
                                              pos = boltatt_pos)
             boltatt_pos = boltatt_pos + vec_boltatt_add
-<<<<<<< HEAD
-            boltholes_list.append(shp_boltatt)
-
-
-        shp_holes = shp_bigholes.multiFuse(boltholes_list)
-=======
             holes_list.append(shp_boltatt)
 
         if cube_dist_n > cube_dist_p :
@@ -3493,7 +3530,6 @@ class Plate3CageCubes (object):
             
 
         shp_holes = fcfun.fuseshplist(holes_list)
->>>>>>> comps/master
         shp_plate = shp_box.cut(shp_holes)
 
 

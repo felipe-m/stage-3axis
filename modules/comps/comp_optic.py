@@ -287,12 +287,8 @@ class CageCube (object):
 def f_cagecube (d_cagecube,
                 axis_thru_rods = 'x',
                 axis_thru_hole = 'y',
-<<<<<<< HEAD
-                name = 'cagecube'
-=======
                 name = 'cagecube',
                 toprint_tol = 0,
->>>>>>> comps/master
                ):
 
     """ creates a cage cube, it creates from a dictionary
@@ -306,28 +302,14 @@ def f_cagecube (d_cagecube,
            There are 6 posible orientations:
            Thru-rods can be on X, Y or Z axis
            thru-hole can be on X, Y, or Z axis, but not in the same as thru-rods
-<<<<<<< HEAD
-=======
         toprint_tol: 0, dimensions as they are.
                      >0 value of tolerances of the holes.
                      multiplies the normal tolerance in kcomp.TOL
->>>>>>> comps/master
 
     Returns a class of a CageCube. The freeCAD object can be accessed by the
         attribute .fco
     """
 
-<<<<<<< HEAD
-    cage = CageCube(side_l = d_cagecube['L'],
-                thru_hole_d = d_cagecube['thru_hole_d'],
-                thru_thread_d = d_cagecube['thru_thread_d'],
-                thru_rod_d = d_cagecube['thru_rod_d'],
-                thru_rod_sep = d_cagecube['thru_rod_sep'],
-                rod_thread_d = d_cagecube['rod_thread_d'],
-                rod_thread_l = d_cagecube['rod_thread_l'],
-                tap_d = d_cagecube['tap_d'],
-                tap_l = d_cagecube['tap_l'],
-=======
     if toprint_tol > 0:
         tol = toprint_tol * kcomp.TOL
         tol_plus = 1.5 * toprint_tol * kcomp.TOL
@@ -347,7 +329,6 @@ def f_cagecube (d_cagecube,
                 rod_thread_l = d_cagecube['rod_thread_l'] + tol,
                 tap_d = d_cagecube['tap_d'] + tol,
                 tap_l = d_cagecube['tap_l'] + tol,
->>>>>>> comps/master
                 tap_sep_l = d_cagecube['tap_sep_l'],
                 tap_sep_s = d_cagecube['tap_sep_s'],
                 axis_thru_rods = axis_thru_rods,
@@ -357,8 +338,6 @@ def f_cagecube (d_cagecube,
     return cage
 
 
-<<<<<<< HEAD
-=======
 #doc = FreeCAD.newDocument()
 #doc = FreeCAD.ActiveDocument
 # Cage cube to print, with tolerances
@@ -369,7 +348,6 @@ def f_cagecube (d_cagecube,
 #                                 toprint_tol = 1)
 
 
->>>>>>> comps/master
 # ---------------------- CageCubeHalf -------------------------------
 
 class CageCubeHalf (object):
@@ -676,11 +654,7 @@ class Lb1cPlate (object):
          |  0                0  | ....               :
          |                      |    :               :
          |                      |    :               :
-<<<<<<< HEAD
-         |         ( )          |    +sym_hole_sep   + cbore_hole_sep_s
-=======
          |         ( )          |    +sym_hole_sep   + cbore_hole_sep_l
->>>>>>> comps/master
          |                      |    :               :
          |  0                0  | ....               :
          |       O      O       | -------------------
@@ -1091,8 +1065,6 @@ class Lb2cPlate (object):
  
 
 
-<<<<<<< HEAD
-=======
 
 class PlateThruholeMhole (object):
 
@@ -1486,7 +1458,6 @@ def lcp01m_plate (d_lcp01m_plate = kcomp_optic.LCP01M_PLATE,
 
 
 
->>>>>>> comps/master
 # ---------------------- Sm1TubelensSm2 --------------------------
 
 class SM1TubelensSm2 (object):
