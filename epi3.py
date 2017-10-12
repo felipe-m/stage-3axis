@@ -161,14 +161,14 @@ CUBE_VBBOARD_SEP = 27.5
 CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
-h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-                                  length = V_BREAD_BOARD_L,
-                                  width = V_BREAD_BOARD_W,
-                                  cl = 0, cw = 1, ch = 0,
-                                  fc_dir_h = VY,
-                                  fc_dir_w = VX,
-                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-                                  name = 'vertical_breadboard')
+#h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
+#                                  length = V_BREAD_BOARD_L,
+#                                  width = V_BREAD_BOARD_W,
+#                                  cl = 0, cw = 1, ch = 0,
+#                                  fc_dir_h = VY,
+#                                  fc_dir_w = VX,
+#                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+#                                  name = 'vertical_breadboard')
 
 
 # color of the different objects
@@ -180,7 +180,7 @@ ALU_COLOR_STA = (0.8, 0.2, 0.2)
 PRINT_COLOR = fcfun.ORANGE
 
 
-h_vbreadboard.color(ALU_COLOR)
+#h_vbreadboard.color(ALU_COLOR)
 
 movegroup_list = []
 
@@ -495,14 +495,14 @@ sm1_l = h_tubelens_c.sm1_l
 # alux_leds_in, will be after the sm2 ring of the SM1 to SM2 tube lens adapter
 sm2_l = h_tubelens_c.sm2_l + h_tubelens_c.ring_l
 
-rod_leds_pos_y = (- cube_w/2. - sm2_l - sm1_l/2.)
+rod_led_pos_y = (- cube_w/2. - sm2_l - sm1_l/2.)
 
 # This will be the same position for the housing, having it centered on its
 # axis: bolt_center = 0
 
 lbear1_pos_x = -(CUBE_SEP_L-cube_w/2.)
 lbear2_pos_x = CUBE_SEP_R/2.
-lbear_cpos_y = rod_leds_pos_y #cpos, because it is centered
+lbear_cpos_y = rod_led_pos_y #cpos, because it is centered
 
 lbear_pos_z = alux_cubes_pos_z
 lbear1_pos = FreeCAD.Vector(lbear1_pos_x, 
@@ -576,7 +576,7 @@ sh_h_dif = sh_led_h - sh_bb_h
 #                 lbear_bb                 lbear_led
 #          ....  ___________               __________ ....
 #          :    |                          _____     |    :
-#lbear_bb_rod_h|   _____                 |     |    |    + lbear_led_rod_h
+# lbear_bb_rod_h|   _____                 |     |    |    + lbear_led_rod_h
 #          :    |  |     |    ----------- |  O  |---- ....:
 #          :...  --|  O  |----- sh_h_dif  |     |
 #                __|     |__            __|     |__
@@ -611,10 +611,10 @@ rod_led_pos_z = lbear_pos_z - lbear_led_rod_h
 
 rod2lbearbolt_dist_y = h_lbear1_led.boltcen_perp_dist
 # Position of the aluminum profile to hold the linear bearing
-alux_leds_in_pos_y = rod_leds_pos_y + rod2lbearbolt_dist_y
+alux_leds_in_pos_y = rod_led_pos_y + rod2lbearbolt_dist_y
 # Position of the aluminum profile to hold the linear bearing,
 # closest to the leds
-alux_leds_out_pos_y = rod_leds_pos_y - rod2lbearbolt_dist_y
+alux_leds_out_pos_y = rod_led_pos_y - rod2lbearbolt_dist_y
 
 # distance from the rod to the bolt that attachs the linear bearing
 # house to the aluminum profile alux_cubes_y. On the Y axis
@@ -753,15 +753,53 @@ movegroup_list.append(h_beltclamp_n.fco)
 # dictionary of the shaft holder
 #d_sh = kcomp.SK[rod_d]
 
-sh_depth = d_sh_led['L']
+sh_led_depth = d_sh_led['L']
+sh_bb_depth = d_sh_bb['L']
+
+sh_depth_max = max(sh_led_depth, sh_bb_depth)
+extra_rod = 2.
 
 #min_rod_l = stroke + cart_length + 40
-# 2.5 the depth of the shaft holder to a little bit extra room to hold it
-min_rod_l = stroke + cube_block_l + 2.5 * sh_depth 
+# 2* the depth of the shaft holder and a little bit extra room to hold it
+min_rod_l = stroke + cube_block_l + 2*sh_depth_max + 2*extra_rod
 
 file_comps.write('# Min rod length: stroke + cart length + shaft holder: ')
 file_comps.write( str(min_rod_l) + ' mm \n')
 file_comps.write('\n')
+
+# list of rods length we have:
+rod_list_10 = [600, 575, 550, 525, 500, 475, 450]
+rod_list_12 = [700, 675, 650, 600, 550, 525, 500, 475, 450]
+d_rod_l = { 10 : rod_list_10,
+          12 : rod_list_12 }
+
+rod_bb_l = 0
+for rodlen in d_rod_l[int(rod_bb_d)]:
+    if min_rod_l > rodlen:
+        break
+    else:
+        rod_bb_l = rodlen
+
+rod_led_l = 0
+for rodlen in d_rod_l[int(rod_led_d)]:
+    if min_rod_l > rodlen:
+        break
+    else:
+        rod_led_l = rodlen
+
+file_comps.write('# Final rod length:')
+file_comps.write( str(rod_bb_l) + ' mm \n')
+file_comps.write('\n')
+if rod_bb_l != rod_led_l:
+    logger.debug ("rod length are not equal: " + str(rod_l_cand)
+                  + str(rod_l_cand_2))
+    file_comps.write('# Final rod length for led side:')
+    file_comps.write( str(rod_led_l) + ' mm \n')
+    file_comps.write('\n')
+    
+
+
+
 
 # From the center to the left side we have:
 
@@ -785,7 +823,7 @@ file_comps.write('\n')
 #  :  : +cube_w/2                  :
 #  :  :....cube_block_l............:
 #  :..:
-#    + sh_depth *1.25
+#    + sh_depth + extra_rod 
 
 
 #
@@ -807,24 +845,66 @@ file_comps.write('\n')
 #                          :   :.........stroke......:..:  :
 #                          :                 cube_w/2 + :  :
 #                          :........cube_block_l........:..:
-#                                                         + sh_depth *1.25
+#                                                         + sh_depth + extra_rod
 # so the total length of the rod is:
-# 2.5*sh_depth + 2*stroke + cube_w
+# 2 * extra_rod + 2*sh_depth  + 2*stroke + cube_w
 # since: cube_block = stroke + cube_w, then
-# 2.5*sh_depth + stroke + cube_block_l
+# 2*extra_rod + 2*sh_depth + stroke + cube_block_l
 # having it centered on Y=0
 
-pos_rod_led = FreeCAD.Vector(0, rod_leds_pos_y, rod_led_pos_z)
-shp_rod_led = fcfun.shp_cylcenxtr(r= rod_led_r, h=min_rod_l, normal= VX,
-                                  pos = pos_rod_led)
+rod_led_pos = FreeCAD.Vector(0, rod_led_pos_y, rod_led_pos_z)
+shp_rod_led = fcfun.shp_cylcenxtr(r= rod_led_r, h=rod_led_l, normal= VX,
+                                  pos = rod_led_pos)
 fco_rod_led = doc.addObject("Part::Feature", 'rod_led')
 fco_rod_led.Shape = shp_rod_led
 
-pos_rod_bb = FreeCAD.Vector(0, rod_bb_pos_y, rod_bb_pos_z)
-shp_rod_bb = fcfun.shp_cylcenxtr(r= rod_bb_r, h=min_rod_l, normal= VX,
-                                     pos = pos_rod_bb)
+rod_bb_pos = FreeCAD.Vector(0, rod_bb_pos_y, rod_bb_pos_z)
+shp_rod_bb = fcfun.shp_cylcenxtr(r= rod_bb_r, h=rod_bb_l, normal= VX,
+                                     pos = rod_bb_pos)
 fco_rod_bb = doc.addObject("Part::Feature", 'rod_bboard')
 fco_rod_bb.Shape = shp_rod_bb
+
+# Shaft holders are on Aluminum profiles
+
+# size of the aluminum profiles for the rods structure
+alurod_w = 30
+
+
+# sh_depth/2 because referenced at the middle
+sh_pos_x = min(rod_bb_l, rod_led_l)/2. - sh_depth/2. - extra_rod
+
+
+h_sh_bb_list = []
+h_sh_led_list = []
+for sufix, sh_pos_xi in zip(['n', 'p'], [-sh_pos_x, sh_pos_x]):
+    sh_bb_pos = FreeCAD.Vector(sh_pos_xi, rod_bb_pos_y, rod_bb_pos_z)
+    name_sh = 'sh_holder_bb_' + sufix
+    h_sh_bb = comps.Sk_dir (size = int(rod_bb_d),
+                                fc_axis_h = VZ,
+                                fc_axis_d = VX,
+                                ref_hr = 1, #ref at the rod
+                                ref_wc = 1, #ref at the symmetry axis
+                                ref_dc = 1, #ref at center
+                                pos = sh_bb_pos,
+                                name = name_sh)
+    h_sh_bb_list.append(h_sh_bb)
+    sh_led_pos = FreeCAD.Vector(sh_pos_xi, rod_led_pos_y,
+                                    rod_led_pos_z)
+    name_sh = 'sh_holder_led_' + sufix
+    h_sh_led = comps.Sk_dir (size = int(rod_led_d),
+                                fc_axis_h = VZ,
+                                fc_axis_d = VX,
+                                ref_hr = 1, #ref at the rod
+                                ref_wc = 1, #ref at the symmetry axis
+                                ref_dc = 1, #ref at center
+                                pos = sh_led_pos)
+    h_sh_led_list.append(h_sh_led)
+
+ 
+
+
+
+
 
 
 
