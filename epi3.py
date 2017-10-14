@@ -120,7 +120,8 @@ cube_w = dcube['L']
 #   :                            :
 #   :....cube_block_l............:
 
-H_CUBES = 250.
+# From the base of the cube to the bottom
+H_CUBES = 276.1
 # cubes separation, separation between the centers
 # 2 of the cubes are very close
 #CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
@@ -161,14 +162,14 @@ CUBE_VBBOARD_SEP = 27.5
 CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
-#h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-#                                  length = V_BREAD_BOARD_L,
-#                                  width = V_BREAD_BOARD_W,
-#                                  cl = 0, cw = 1, ch = 0,
-#                                  fc_dir_h = VY,
-#                                  fc_dir_w = VX,
-#                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-#                                  name = 'vertical_breadboard')
+h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
+                                  length = V_BREAD_BOARD_L,
+                                  width = V_BREAD_BOARD_W,
+                                  cl = 0, cw = 1, ch = 0,
+                                  fc_dir_h = VY,
+                                  fc_dir_w = VX,
+                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+                                  name = 'vertical_breadboard')
 
 
 # color of the different objects
@@ -176,6 +177,7 @@ OPTIC_COLOR = fcfun.CIAN_08
 OPTIC_COLOR_STA = fcfun.GREEN_D07  #Optics that are not moving, static
 LED_COLOR = fcfun.CIAN_05
 ALU_COLOR = fcfun.YELLOW_05
+ALUFRAME_COLOR = fcfun.WHITE
 ALU_COLOR_STA = (0.8, 0.2, 0.2)
 PRINT_COLOR = fcfun.ORANGE
 
@@ -823,7 +825,7 @@ if rod_bb_l != rod_led_l:
 #  :  : +cube_w/2                  :
 #  :  :....cube_block_l............:
 #  :..:
-#    + sh_depth + extra_rod 
+#    + sh_depth_max + extra_rod 
 
 
 #
@@ -866,12 +868,10 @@ fco_rod_bb.Shape = shp_rod_bb
 
 # Shaft holders are on Aluminum profiles
 
-# size of the aluminum profiles for the rods structure
-alurod_w = 30
 
 
 # sh_depth/2 because referenced at the middle
-sh_pos_x = min(rod_bb_l, rod_led_l)/2. - sh_depth/2. - extra_rod
+sh_pos_x = min(rod_bb_l, rod_led_l)/2. - sh_depth_max/2. - extra_rod
 
 
 h_sh_bb_list = []
@@ -897,7 +897,8 @@ for sufix, sh_pos_xi in zip(['n', 'p'], [-sh_pos_x, sh_pos_x]):
                                 ref_hr = 1, #ref at the rod
                                 ref_wc = 1, #ref at the symmetry axis
                                 ref_dc = 1, #ref at center
-                                pos = sh_led_pos)
+                                pos = sh_led_pos,
+                                name = name_sh)
     h_sh_led_list.append(h_sh_led)
 
  
@@ -969,7 +970,7 @@ h_br_led_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  alu_sep = alu_led_linbear_sep,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3,
+                 bolt_lin_d = 3,
                  nbolts_lin = 2,
                  bolt_perp_line = 0,
                  xtr_bolt_head = 2, 
@@ -990,7 +991,7 @@ h_br_led_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  alu_sep = alu_led_linbear_sep,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3,
+                 bolt_lin_d = 3,
                  nbolts_lin = 2,
                  bolt_perp_line = 1,
                  xtr_bolt_head = 4, 
@@ -1029,7 +1030,7 @@ h_br_bb_nx = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  alu_sep = alu_bb_linbear_sep,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3,
+                 bolt_lin_d = 3,
                  nbolts_lin = 2,
                  bolt_perp_line = 0,
                  xtr_bolt_head = 2, 
@@ -1049,7 +1050,7 @@ h_br_bb_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
                  alu_sep = alu_bb_linbear_sep,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3,
+                 bolt_lin_d = 3,
                  nbolts_lin = 2,
                  bolt_perp_line = 1,
                  xtr_bolt_head = 4, 
@@ -1064,6 +1065,99 @@ h_br_bb_x = parts.AluProfBracketPerpTwin ( alusize_lin = aluy_cubes_w,
 h_br_bb_x.color(PRINT_COLOR)
 h_br_bb_x.export_stl()
 movegroup_list.append(h_br_bb_x.fco)
+
+
+# ------------------ Aluminum profiles for the big frame
+# size of the aluminum profiles for the rods structure
+aluframe = 20
+d_aluframe = kcomp.ALU_PROF[aluframe]
+
+# position of rod center the breadboard shaft holder on the negative side of X:
+# (-sh_pos_x, rob_bb_pos_y, rod_bb_pos_z)
+# or
+h_sh_bb_n = h_sh_bb_list[0]
+h_sh_led_n = h_sh_led_list[0]
+
+# so the corner bottom point, y_pos will be larger and z pos minimum:
+# and will be the z_pos for the top face of the alu profile
+#
+#    bboard
+#     ||                                        Z  
+#     ||    ___               ___            Y _|
+#     ||   | 0 |             | 0 |------
+#     || __|   |__         __|   |__   + sh_led_h
+#       |_________|_______|_________|..:
+#       1                            2
+#            aluframey
+#       3____________________________4
+#       :                             :
+#       :........min_aluframey_l......:
+#
+
+# position of point 1
+sh_bot_pos_z = h_sh_bb_n.pos.z - sh_bb_h
+sh_bb_bot_py_pos_y = h_sh_bb_n.pos.y + h_sh_bb_n.tot_w/2
+# Z position of point 3
+aluframey_pos_z = sh_bot_pos_z - aluframe
+
+# position of point 2, z is the same (different values to get it)
+#sh_bot_pos_z = h_sh_led.pos.z + DraftVecUtils.scale(VZN, sh_led_h)
+sh_led_bot_ny_pos_y = h_sh_led_n.pos.y - h_sh_led_n.tot_w/2
+
+min_aluframey_l = abs(sh_bb_bot_py_pos_y - sh_led_bot_ny_pos_y)
+
+file_comps.write('# Min length of aluframey: ')
+file_comps.write( str(min_aluframey_l) + ' mm \n')
+
+# 20x20 alu profiles we have
+alu_list_20 = [670, 500, 400, 360, 350,  340, 330, 320, 300, 280, 260, 240,
+               220, 180, 160, 54]
+
+d_alu_l = { 20 : alu_list_20 }
+
+aluframey_l = 0
+for alulen in d_alu_l[aluframe]:
+    if min_aluframey_l > alulen:
+        break
+    else:
+        aluframey_l = alulen
+
+file_comps.write('# Length of aluframey: ')
+file_comps.write( str(aluframey_l) + ' mm \n')
+
+h_aluframey_nx = comps.getaluprof(d_aluframe, aluframey_l, axis='y',
+                                  name = 'aluframey_nx',
+                                  cx=True, cy = True, cz=False)
+
+aluframey_nx = h_aluframey_nx.fco
+fco_aluframey_nx.ViewObject.ShapeColor = ALUFRAME_COLOR
+
+
+#h_aluframey_nx = comps.getaluprof(d_aluframe, aluframey_l, axis='y',
+#                                  name = 'aluframey_nx',
+#                                  cx=True, cy = True, cz=False)
+
+fco_aluframey_nx = h_aluframey_nx.fco
+fco_aluframey_x = Draft.clone(fco_aluframey_nx)
+fco_aluframey_x.ViewObject.ShapeColor = ALUFRAME_COLOR
+
+fco_aluframey_x.Label = 'aluframey_x'
+fco_aluframey_x.Placement.Base.x = sh_pos_x
+fco_aluframey_x.Placement.Base.y = (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.
+fco_aluframey_x.Placement.Base.z = aluframey_pos_z
+
+fco_aluframey_nx.Placement.Base.x = -sh_pos_x
+fco_aluframey_nx.Placement.Base.y = (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.
+fco_aluframey_nx.Placement.Base.z = aluframey_pos_z
+
+
+
+
+
+
+
+
+
 
 n_movegr = len(movegroup_list)
 mvgroup_l = list(set(movegroup_list))
