@@ -1,0 +1,21 @@
+# Space between central al left cube, to introduce # beam splitter71.8 mm 
+
+# Separation between the centers of right and left cubes, # stroke: 237.0 mm 
+
+# Length of the whole block: 3 cages in total: 313.2 mm 
+
+hole tublens 57.6
+vs 57
+sym linearbearing rod to base: 13.0
+# Min rod length: stroke + cart length + shaft holder: 582.2 mm 
+
+# Final rod length:600 mm 
+
+# Min length of aluframey: 201.3 mm 
+# Length of aluframey: 220 mm 
+# Minimum aluframex (along the rods: 602.0 mm 
+# Length of aluframex: 670 mm 
+# Minimum aluframez (vertical) for frame_1: 238.2 mm 
+# Length of aluframez for frame_1: 240 mm 
+# Minimum aluframez (vertical) for frame_2: 258.2 mm 
+# Length of aluframez for frame_2: 260 mm 

@@ -100,6 +100,17 @@ dcube = kcomp_optic.CAGE_CUBE_60
 # cube width: 76.2
 cube_w = dcube['L']
 
+# in case reference axes wanted to be changed
+# citometer axes
+cVX = VX
+cVY = VY
+cVZ = VZ
+
+cVXN = cVX.negative() 
+cVYN = cVY.negative()
+cVZN = cVZ.negative()
+
+
 # view from top:
 #
 #                    Y
@@ -177,7 +188,7 @@ OPTIC_COLOR = fcfun.CIAN_08
 OPTIC_COLOR_STA = fcfun.GREEN_D07  #Optics that are not moving, static
 LED_COLOR = fcfun.CIAN_05
 ALU_COLOR = fcfun.YELLOW_05
-ALUFRAME_COLOR = fcfun.WHITE
+ALUFRAME_COLOR = fcfun.GREEN_07
 ALU_COLOR_STA = (0.8, 0.2, 0.2)
 PRINT_COLOR = fcfun.ORANGE
 
@@ -1069,8 +1080,8 @@ movegroup_list.append(h_br_bb_x.fco)
 
 # ------------------ Aluminum profiles for the big frame
 # size of the aluminum profiles for the rods structure
-aluframe = 20
-d_aluframe = kcomp.ALU_PROF[aluframe]
+aluframe_w = 20
+d_aluframe = kcomp.ALU_PROF[aluframe_w]
 
 # position of rod center the breadboard shaft holder on the negative side of X:
 # (-sh_pos_x, rob_bb_pos_y, rod_bb_pos_z)
@@ -1098,13 +1109,13 @@ h_sh_led_n = h_sh_led_list[0]
 sh_bot_pos_z = h_sh_bb_n.pos.z - sh_bb_h
 sh_bb_bot_py_pos_y = h_sh_bb_n.pos.y + h_sh_bb_n.tot_w/2
 # Z position of point 3
-aluframey_pos_z = sh_bot_pos_z - aluframe
+aluframeybot_pos_z = sh_bot_pos_z - aluframe_w
 
 # position of point 2, z is the same (different values to get it)
 #sh_bot_pos_z = h_sh_led.pos.z + DraftVecUtils.scale(VZN, sh_led_h)
 sh_led_bot_ny_pos_y = h_sh_led_n.pos.y - h_sh_led_n.tot_w/2
 
-min_aluframey_l = abs(sh_bb_bot_py_pos_y - sh_led_bot_ny_pos_y)
+min_aluframey_l = abs(sh_bb_bot_py_pos_y - sh_led_bot_ny_pos_y) + 2*aluframe_w
 
 file_comps.write('# Min length of aluframey: ')
 file_comps.write( str(min_aluframey_l) + ' mm \n')
@@ -1116,7 +1127,7 @@ alu_list_20 = [670, 500, 400, 360, 350,  340, 330, 320, 300, 280, 260, 240,
 d_alu_l = { 20 : alu_list_20 }
 
 aluframey_l = 0
-for alulen in d_alu_l[aluframe]:
+for alulen in d_alu_l[aluframe_w]:
     if min_aluframey_l > alulen:
         break
     else:
@@ -1125,38 +1136,269 @@ for alulen in d_alu_l[aluframe]:
 file_comps.write('# Length of aluframey: ')
 file_comps.write( str(aluframey_l) + ' mm \n')
 
-h_aluframey_nx = comps.getaluprof(d_aluframe, aluframey_l, axis='y',
-                                  name = 'aluframey_nx',
-                                  cx=True, cy = True, cz=False)
+aluframey_nx_pos = FreeCAD.Vector(-sh_pos_x,
+                                  (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.,
+                                  sh_bot_pos_z)
+h_aluframey_nx = comps.getaluprof_dir(d_aluframe, aluframey_l,
+                                  fc_axis_l = cVY,
+                                  fc_axis_w = cVZN,
+                                  ref_l = 1, # centered
+                                  ref_w = 2, # looking down
+                                  # ref_p = 1, # centered
+                                  pos = aluframey_nx_pos,
+                                  name = 'aluframey_nx')
+h_aluframey_nx.color(ALUFRAME_COLOR)
 
-aluframey_nx = h_aluframey_nx.fco
-fco_aluframey_nx.ViewObject.ShapeColor = ALUFRAME_COLOR
+aluframey_x_pos = aluframey_nx_pos
+aluframey_x_pos.x = sh_pos_x
+h_aluframey_x = comps.getaluprof_dir(d_aluframe, aluframey_l,
+                                 fc_axis_l = cVY,
+                                 fc_axis_w = cVZN,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking down
+                                 pos = aluframey_x_pos,
+                                 name = 'aluframey_x')
+h_aluframey_x.color(ALUFRAME_COLOR)
+
+#    bboard
+#     ||                                        Z  
+#     ||    ___               ___            Y _|
+#     ||   | 0 |             | 0 |------
+#     || __|   |__         __|   |__   + sh_led_h
+#     |||_________|_______|_________|..:
+#     ||1                            2
+#     ||     aluframey
+#     ||3____________________________4  aluframeybot_pos_z 
+#     || \/ |
+#     | >  < aluframex_y
+#     ||_/\_| 
+#     ||
+#      y_pos=CUBECEN_VBBOARD_SEP
+
+# the minimum length is the distance of the shaft holders + 2*aluframe_w/2
+#
+#       Shaft holder
+#       ___                                        Z
+#      |   |__________________                     |_ X
+#      |   |__________________                     
+#      |___|
+#     _|___|_
+#    |  \ /  |                           |  \ /  | 
+#     >     <  aluframey_nx               >     <  aluframey_x
+#    |__/_\__|___________________________|__/ \__|
+#    |   :                                   :   |
+#    |   :      aluframex_y                  :   |
+#    |   :                                   :   |
+#    |___:___________________________________:___|
+#    :   :                                   :
+#    :. .:...........2 * sh_pos_x ...........:
+#      + aluframe_w/2.
+#
+#
+min_aluframex_l = 2*sh_pos_x + aluframe_w
+aluframex_l = 0
+for alulen in d_alu_l[aluframe_w]:
+    if min_aluframex_l > alulen:
+        break
+    else:
+        aluframex_l = alulen
+
+file_comps.write('# Minimum aluframex (along the rods: ')
+file_comps.write( str(min_aluframex_l) + ' mm \n')
+file_comps.write('# Length of aluframex: ')
+file_comps.write( str(aluframex_l) + ' mm \n')
+
+aluframex_y_pos = FreeCAD.Vector(0, CUBECEN_VBBOARD_SEP, aluframeybot_pos_z)
+h_aluframex_y = comps.getaluprof_dir(d_aluframe, aluframex_l,
+                                 fc_axis_l = cVX,
+                                 fc_axis_w = cVZN,
+                                 fc_axis_p = cVYN,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking down
+                                 ref_p = 2, # looking cVYN
+                                 pos = aluframex_y_pos,
+                                 name = 'aluframex_y')
+h_aluframex_y.color(ALUFRAME_COLOR)
+
+aluframex_ny_pos = FreeCAD.Vector(0, rod_led_pos_y, aluframeybot_pos_z)
+h_aluframex_ny = comps.getaluprof_dir(d_aluframe, aluframex_l,
+                                 fc_axis_l = cVX,
+                                 fc_axis_w = cVZN,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking down
+                                 ref_p = 1, # centered on y
+                                 pos = aluframex_ny_pos,
+                                 name = 'aluframex_ny')
+h_aluframex_ny.color(ALUFRAME_COLOR)
+
+aluframex_nz_y_pos = FreeCAD.Vector(0, CUBECEN_VBBOARD_SEP, 0)
+h_aluframex_nz_y = comps.getaluprof_dir(d_aluframe, aluframex_l,
+                                 fc_axis_l = cVX,
+                                 fc_axis_w = cVZ,
+                                 fc_axis_p = cVYN,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking up
+                                 ref_p = 2, # looking cVYN
+                                 pos = aluframex_nz_y_pos,
+                                 name = 'aluframex_nz_y')
+h_aluframex_nz_y.color(ALUFRAME_COLOR)
+
+aluframex_nz_ny_pos = FreeCAD.Vector(0, rod_led_pos_y, 0)
+h_aluframex_nz_ny = comps.getaluprof_dir(d_aluframe, aluframex_l,
+                                 fc_axis_l = cVX,
+                                 fc_axis_w = cVZ,
+                                 fc_axis_p = cVYN,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking up
+                                 ref_p = 1, # centered on y
+                                 pos = aluframex_nz_ny_pos,
+                                 name = 'aluframex_nz_ny')
+h_aluframex_nz_ny.color(ALUFRAME_COLOR)
+
+# ---------------------- FRAME 1 --------------------------------
+frame1_list = []
+
+# profiles at the bottom on axis y
+aluframey_nz_nx_pos = FreeCAD.Vector(-sh_pos_x - aluframe_w ,
+                                  (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.,
+                                   aluframe_w)
+h_aluframey_nz_nx = comps.getaluprof_dir(d_aluframe, aluframey_l,
+                                  fc_axis_l = cVY,
+                                  fc_axis_w = cVZ,
+                                  ref_l = 1, # centered
+                                  ref_w = 2, # looking up
+                                  # ref_p = 1, # centered
+                                  pos = aluframey_nz_nx_pos,
+                                  name = 'aluframe1y_nz_nx')
+h_aluframey_nz_nx.color(ALUFRAME_COLOR)
+frame1_list.append(h_aluframey_nz_nx.fco)
+
+# doing this you make both vector being the same!!!
+# it seems to work on pointers
+#aluframey_nz_x_pos = aluframey_nz_nx_pos
+aluframey_nz_x_pos = FreeCAD.Vector(aluframey_nz_nx_pos)
+aluframey_nz_x_pos.x = - aluframey_nz_nx_pos.x
+h_aluframey_nz_x = comps.getaluprof_dir(d_aluframe, aluframey_l,
+                                 fc_axis_l = cVY,
+                                 fc_axis_w = cVZ,
+                                 ref_l = 1, # centered
+                                 ref_w = 2, # looking up
+                                 pos = aluframey_nz_x_pos,
+                                 name = 'aluframe1y_nz_x')
+h_aluframey_nz_x.color(ALUFRAME_COLOR)
+frame1_list.append(h_aluframey_nz_x.fco)
+
+# vertical profiles for the frame
+min_aluframez_l = sh_bot_pos_z - 2 * aluframe_w
+aluframez_l = 0
+for alulen in d_alu_l[aluframe_w]:
+    if min_aluframez_l > alulen:
+        break
+    else:
+        aluframez_l = alulen
+
+file_comps.write('# Minimum aluframez (vertical) for frame_1: ')
+file_comps.write( str(min_aluframez_l) + ' mm \n')
+file_comps.write('# Length of aluframez for frame_1: ')
+file_comps.write( str(aluframez_l) + ' mm \n')
+
+h_aluframe1z_dict = {}
+for x_sufi, x_posi in zip(['nx', 'x'],
+                      [aluframey_nz_nx_pos.x, aluframey_nz_x_pos.x]):
+    for y_sufi, y_posi in zip(['_ny', '_y'],
+                       [aluframex_nz_ny_pos.y - aluframe_w, 
+                   # because aluframex_nz_y_pos was not centered and
+                   # pointing to the opposite way
+                    aluframex_nz_y_pos.y + aluframe_w/2.]):
+        aluframez_pos_i = FreeCAD.Vector(x_posi, y_posi, 2*aluframe_w)
+        name_i = 'aluframe1z_' + x_sufi + y_sufi
+        h_aluframez = comps.getaluprof_dir(d_aluframe, aluframez_l,
+                             fc_axis_l = cVZ,
+                             fc_axis_w = cVY,
+                             ref_l = 2, # looking up
+                             ref_w = 1, # centered on y, like aluframex_nz_y
+                             pos = aluframez_pos_i,
+                             name = name_i)
+        h_aluframez.color(ALUFRAME_COLOR)
+        frame1_list.append(h_aluframez.fco)
+        h_aluframe1z_dict[(x_sufi+y_sufi)] = h_aluframez
 
 
-#h_aluframey_nx = comps.getaluprof(d_aluframe, aluframey_l, axis='y',
-#                                  name = 'aluframey_nx',
-#                                  cx=True, cy = True, cz=False)
-
-fco_aluframey_nx = h_aluframey_nx.fco
-fco_aluframey_x = Draft.clone(fco_aluframey_nx)
-fco_aluframey_x.ViewObject.ShapeColor = ALUFRAME_COLOR
-
-fco_aluframey_x.Label = 'aluframey_x'
-fco_aluframey_x.Placement.Base.x = sh_pos_x
-fco_aluframey_x.Placement.Base.y = (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.
-fco_aluframey_x.Placement.Base.z = aluframey_pos_z
-
-fco_aluframey_nx.Placement.Base.x = -sh_pos_x
-fco_aluframey_nx.Placement.Base.y = (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.
-fco_aluframey_nx.Placement.Base.z = aluframey_pos_z
+frame_1_group = doc.addObject("Part::Compound","frame_1")
+frame_1_group.Links = frame1_list
 
 
+# ---------------------- FRAME 2 --------------------------------
+frame2_list = []
+
+# vertical profiles for the frame
+min_aluframez_l = sh_bot_pos_z -  aluframe_w
+aluframez_l = 0
+for alulen in d_alu_l[aluframe_w]:
+    if min_aluframez_l > alulen:
+        break
+    else:
+        aluframez_l = alulen
+
+file_comps.write('# Minimum aluframez (vertical) for frame_2: ')
+file_comps.write( str(min_aluframez_l) + ' mm \n')
+file_comps.write('# Length of aluframez for frame_2: ')
+file_comps.write( str(aluframez_l) + ' mm \n')
+
+h_aluframey_dict = {}
+h_aluframe2z_dict = {}
+x_posi_abs = aluframex_l/2. + aluframe_w/2.
+for x_sufi, x_sigi in zip(['nx', 'x'], [-1, 1]):
+    # profiles at the bottom on axis y
+    pos_i = FreeCAD.Vector( x_sigi * x_posi_abs,
+                           (sh_bb_bot_py_pos_y+sh_led_bot_ny_pos_y)/2.,
+                            0)
+    name_i = 'aluframe2y_' + x_sufi
+    h_aluframey_nz = comps.getaluprof_dir(d_aluframe, aluframey_l,
+                                  fc_axis_l = cVY,
+                                  fc_axis_w = cVZ,
+                                  ref_l = 1, # centered
+                                  ref_w = 2, # looking up
+                                  # ref_p = 1, # centered
+                                  pos = pos_i,
+                                  name = name_i)
+    h_aluframey_nz.color(ALUFRAME_COLOR)
+    frame2_list.append(h_aluframey_nz.fco)
+    h_aluframey_dict[(x_sufi+y_sufi)] = h_aluframey_nz
+
+    # vertical profiles
+    for y_sufi, y_posi in zip(['_ny', '_y'],
+                       [aluframex_nz_ny_pos.y, 
+                   # because aluframex_nz_y_pos was not centered and
+                   # pointing to the opposite way
+                    aluframex_nz_y_pos.y - aluframe_w/2.]):
+        pos_i = FreeCAD.Vector(x_sigi * x_posi_abs, y_posi, aluframe_w)
+        name_i = 'aluframe2z_' + x_sufi + y_sufi
+        h_aluframez = comps.getaluprof_dir(d_aluframe, aluframez_l,
+                             fc_axis_l = cVZ,
+                             fc_axis_w = cVY,
+                             ref_l = 2, # looking up
+                             ref_w = 1, # centered on y, like aluframex_nz_y
+                             pos = pos_i,
+                             name = name_i)
+        h_aluframez.color(ALUFRAME_COLOR)
+        frame2_list.append(h_aluframez.fco)
+        h_aluframe2z_dict[(x_sufi+y_sufi)] = h_aluframez
 
 
+frame_2_group = doc.addObject("Part::Compound","frame_2")
+frame_2_group.Links = frame2_list
 
+# ------------------- end frame 2
 
+view_frame_1 = 2
 
-
+if view_frame_1 == 1:
+    frame_1_group.ViewObject.Visibility=True
+    frame_2_group.ViewObject.Visibility=False
+else:
+    frame_1_group.ViewObject.Visibility=False
+    frame_2_group.ViewObject.Visibility=True
 
 
 n_movegr = len(movegroup_list)
