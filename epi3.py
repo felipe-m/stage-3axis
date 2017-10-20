@@ -110,6 +110,12 @@ cVXN = cVX.negative()
 cVYN = cVY.negative()
 cVZN = cVZ.negative()
 
+# 20x20 alu profiles we have
+alu_list_20 = [670, 500, 400, 360, 350,  340, 330, 320, 300, 280, 260, 240,
+               220, 180, 160, 150, 54]
+
+d_alu_l = { 20 : alu_list_20 }
+
 
 # view from top:
 #
@@ -246,6 +252,30 @@ h_obj_plate = comp_optic.lcp01m_plate (fc_axis_h = VZN, #bottom is on top
                                        pos = obj_plate_pos)
 h_obj_plate.color(OPTIC_COLOR_STA)
 
+# base to hold the objective plate
+
+#                     ref_d = 3                       ref_h = 2
+#      _    _____________3____________    _         1___2
+#     | |  | |                      | |  | |        | | |
+#     |  \/  |___________O__________|  \/  |        | | |_
+#     |______|______________________|______|....    |_|___|....> fc_axis_h
+#                        :                                   ..>   VYN
+#                        :
+#                   fc_axis_d = VYN
+
+
+obj_baseplate_pos_y = obj_plate_pos.y + h_obj_plate.l/2.
+obj_baseplate_pos = FreeCAD.Vector(obj_plate_pos.x,
+                               obj_baseplate_pos_y,
+                               obj_plate_pos_z)
+h_obj_baseplate = comp_optic.lcpb1m_base(fc_axis_d = cVZ,
+                                         fc_axis_h = cVYN,
+                                         ref_d = 3,
+                                         ref_h = 2,
+                                         pos = obj_baseplate_pos)
+h_obj_baseplate.color(OPTIC_COLOR_STA)
+                                  
+
 # Diameter of the objective at the end where it is screwed:
 OBJ_D = 69.9
 # the objective is at the bottom of the plate, but the plate has been
@@ -255,8 +285,9 @@ obj_pos = h_obj_plate.topcen_pos
 
 
 
-# I don't know the height, what is important is the diameter
-fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= 50,
+
+OBJ_H = 136.
+fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= OBJ_H,
                                  name = "objective",
                                  normal =VZN,
                                  pos=obj_pos)
@@ -1120,11 +1151,6 @@ min_aluframey_l = abs(sh_bb_bot_py_pos_y - sh_led_bot_ny_pos_y) + 2*aluframe_w
 file_comps.write('# Min length of aluframey: ')
 file_comps.write( str(min_aluframey_l) + ' mm \n')
 
-# 20x20 alu profiles we have
-alu_list_20 = [670, 500, 400, 360, 350,  340, 330, 320, 300, 280, 260, 240,
-               220, 180, 160, 54]
-
-d_alu_l = { 20 : alu_list_20 }
 
 aluframey_l = 0
 for alulen in d_alu_l[aluframe_w]:
