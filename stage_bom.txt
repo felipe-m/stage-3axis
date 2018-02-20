@@ -1,0 +1,20 @@
+# Aluminum profile width: 20 mm 
+
+# Shaft diameter: 8 mm 
+
+# Stage Dimensions X: 212.5 mm 
+# Stage Dimensions Y: 198.0 mm 
+# 2 Aluminum Profile X axis: Width: 20 Length  212.5 mm 
+
+# 2 Aluminum Profile Y axis: Width: 20 Length  158.0 mm 
+
+# 4 Shaft Holders, SK8 
+
+# 2 Shafts, Y axis, Diameter 8  Length: 194.0
+
+# 2 Y sliders 
+# Y Slider Dimensions length (Y): 93.0 mm 
+# Y Slider Dimensions width (X): 42.0 mm 
+# Y Slider Dimensions height (Z): 20.0 mm 
+
+# 2 Shafts, X axis, Diameter 8  Length: 149.7
