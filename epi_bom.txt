@@ -15,7 +15,16 @@ sym linearbearing rod to base: 13.0
 # Length of aluframey: 220 mm 
 # Minimum aluframex (along the rods: 602.0 mm 
 # Length of aluframex: 670 mm 
-# Minimum aluframez (vertical) for frame_1: 238.2 mm 
-# Length of aluframez for frame_1: 240 mm 
-# Minimum aluframez (vertical) for frame_2: 258.2 mm 
-# Length of aluframez for frame_2: 260 mm 
+# Minimum aluframez (vertical) for frame_1: 263.2 mm 
+# Length of aluframez for frame_1: 280 mm 
+# Minimum aluframez (vertical) for frame_2: 263.2 mm 
+# Length of aluframez for frame_2: 280 mm 
+separation of the objective plate to the breadboard 21.14
+
+need a washer D9021 M5 (real thickness = 1.2mm)1.14
+
+Ideal length of alu z to hold the the objective at the back242.0
+Real length of alu z to hold the the objective at the back(what we had:200.0
+Real length of alu z to hold the the objective at the front(what we had:240.0
+Ideal length of alu y to hold the the objective105.8
+Real length of alu y to hold the the objective, what we had:160.0

@@ -24,6 +24,7 @@ import FreeCADGui;
 import Part;
 import Draft;
 import logging  # to avoid using print statements
+import time
 #import copy;
 #import Mesh;
 import DraftVecUtils;
@@ -137,8 +138,12 @@ d_alu_l = { 20 : alu_list_20 }
 #   :                            :
 #   :....cube_block_l............:
 
-# From the base of the cube to the bottom
-H_CUBES = 276.1
+# From the base of the cube to the bottom,
+# 19/10/2017 changed, add 25mm because everything goes one hole up on the
+# vertical breadboard. Due to the objective plate holder, the objective is
+# now more down, se we need to restore the distance between the sample and the
+# objective
+H_CUBES = 276.1 + 25.
 # cubes separation, separation between the centers
 # 2 of the cubes are very close
 #CUBE_SEP_R = math.ceil(cube_w) + 5.   # 76.2 -> 82
@@ -180,13 +185,13 @@ CUBECEN_VBBOARD_SEP = CUBE_VBBOARD_SEP + cube_w/2.
 
 # vertical breadboard
 h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
-                                  length = V_BREAD_BOARD_L,
-                                  width = V_BREAD_BOARD_W,
-                                  cl = 0, cw = 1, ch = 0,
-                                  fc_dir_h = VY,
-                                  fc_dir_w = VX,
-                                  pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
-                                  name = 'vertical_breadboard')
+                                 length = V_BREAD_BOARD_L,
+                                 width = V_BREAD_BOARD_W,
+                                 cl = 0, cw = 1, ch = 0,
+                                 fc_dir_h = VY,
+                                 fc_dir_w = VX,
+                                 pos = FreeCAD.Vector(0,CUBECEN_VBBOARD_SEP,0),
+                                 name = 'vertical_breadboard')
 
 
 # color of the different objects
@@ -232,71 +237,13 @@ movegroup_list.append(h_cage_l.fco)
 
 
 
-# Plate to hold the objective
-
-# dictionary of the dimensions of the plate
-#d_obj_plate = kcomp_optic.LB2C_PLATE
-#it is the LCP08/M but it has the same dimensions
-d_obj_plate = kcomp_optic.LCP01M_PLATE
-
-# separation of the plate from the cubes, it has to be tight, but also leave
-# a little bit of room to let the cubes move
-OBJ_PLATE_SEP = 1.
-# Z position at its top
-obj_plate_pos_z = H_CUBES - cube_w/2. - OBJ_PLATE_SEP
-obj_plate_pos =  FreeCAD.Vector(0,0,obj_plate_pos_z)
-obj_plate_axis_l = VY
-h_obj_plate = comp_optic.lcp01m_plate (fc_axis_h = VZN, #bottom is on top
-                                       fc_axis_m = VYN,
-                                       cm=1,cp=1,ch=0,
-                                       pos = obj_plate_pos)
-h_obj_plate.color(OPTIC_COLOR_STA)
-
-# base to hold the objective plate
-
-#                     ref_d = 3                       ref_h = 2
-#      _    _____________3____________    _         1___2
-#     | |  | |                      | |  | |        | | |
-#     |  \/  |___________O__________|  \/  |        | | |_
-#     |______|______________________|______|....    |_|___|....> fc_axis_h
-#                        :                                   ..>   VYN
-#                        :
-#                   fc_axis_d = VYN
-
-
-obj_baseplate_pos_y = obj_plate_pos.y + h_obj_plate.l/2.
-obj_baseplate_pos = FreeCAD.Vector(obj_plate_pos.x,
-                               obj_baseplate_pos_y,
-                               obj_plate_pos_z)
-h_obj_baseplate = comp_optic.lcpb1m_base(fc_axis_d = cVZ,
-                                         fc_axis_h = cVYN,
-                                         ref_d = 3,
-                                         ref_h = 2,
-                                         pos = obj_baseplate_pos)
-h_obj_baseplate.color(OPTIC_COLOR_STA)
-                                  
-
-# Diameter of the objective at the end where it is screwed:
-OBJ_D = 69.9
-# the objective is at the bottom of the plate, but the plate has been
-# drawn upsidedown (it doesnt matter which way), so its top position
-# will be its bottom and the objetive will be there
-obj_pos = h_obj_plate.topcen_pos
-
-
-
-
-OBJ_H = 136.
-fco_objective = fcfun.addCylPos (r= OBJ_D/2., h= OBJ_H,
-                                 name = "objective",
-                                 normal =VZN,
-                                 pos=obj_pos)
+# -------------------------------------------------------------------
 
 # direction of the aluminum profile connected to the plate mounting holes
 # perpendicular to obj_plate_axis_l
-alux_obj_axis = obj_plate_axis_l.cross(VZ)  #it will be X, as alux indicates
-alux_obj_axisname = fcfun.get_positive_vecname(
-                                fcfun.get_nameofbasevec(alux_obj_axis))
+#alux_obj_axis = obj_plate_axis_l.cross(VZ)  #it will be X, as alux indicates
+#alux_obj_axisname = fcfun.get_positive_vecname(
+#                                fcfun.get_nameofbasevec(alux_obj_axis))
 
 # using a 10mm wide aluminum profile to hold the objective
 #alu_obj_w = 10
@@ -460,6 +407,7 @@ h_alux_cubes = comps.getaluprof(d_alux_cubes, length=alux_cubes_len,
                            name = 'alux_cubes_y',
                            cx=1, cy=1, cz=0)
 h_alux_cubes.color(ALU_COLOR)
+#h_alux_cubes.defaluline()
 
 #the freecad object of the aluminum profile
 fco_alux_cubes_y = h_alux_cubes.fco
@@ -963,6 +911,7 @@ h_aluy_cubes = comps.getaluprof(d_aluy_cubes, length=aluy_cubes_len,
                            name = 'aluy_cubes_x',
                            cx=1, cy=0, cz=0)
 h_aluy_cubes.color(ALU_COLOR)
+#h_aluy_cubes.defaluline()
 
 
 aluy_cubes_vboard_sep = 2.5
@@ -1174,6 +1123,7 @@ h_aluframey_nx = comps.getaluprof_dir(d_aluframe, aluframey_l,
                                   pos = aluframey_nx_pos,
                                   name = 'aluframey_nx')
 h_aluframey_nx.color(ALUFRAME_COLOR)
+#h_aluframey_nx.defaluline()
 
 aluframey_x_pos = aluframey_nx_pos
 aluframey_x_pos.x = sh_pos_x
@@ -1185,6 +1135,7 @@ h_aluframey_x = comps.getaluprof_dir(d_aluframe, aluframey_l,
                                  pos = aluframey_x_pos,
                                  name = 'aluframey_x')
 h_aluframey_x.color(ALUFRAME_COLOR)
+#h_aluframey_x.defaluline()
 
 #    bboard
 #     ||                                        Z  
@@ -1302,6 +1253,8 @@ frame1_list.append(h_aluframey_nz_nx.fco)
 # doing this you make both vector being the same!!!
 # it seems to work on pointers
 #aluframey_nz_x_pos = aluframey_nz_nx_pos
+# check:
+# https://forum.freecadweb.org/viewtopic.php?t=14179
 aluframey_nz_x_pos = FreeCAD.Vector(aluframey_nz_nx_pos)
 aluframey_nz_x_pos.x = - aluframey_nz_nx_pos.x
 h_aluframey_nz_x = comps.getaluprof_dir(d_aluframe, aluframey_l,
@@ -1314,7 +1267,7 @@ h_aluframey_nz_x = comps.getaluprof_dir(d_aluframe, aluframey_l,
 h_aluframey_nz_x.color(ALUFRAME_COLOR)
 frame1_list.append(h_aluframey_nz_x.fco)
 
-# vertical profiles for the frame
+# vertical profiles for the frame. Could be - 3* aluframe_w
 min_aluframez_l = sh_bot_pos_z - 2 * aluframe_w
 aluframez_l = 0
 for alulen in d_alu_l[aluframe_w]:
@@ -1352,13 +1305,30 @@ for x_sufi, x_posi in zip(['nx', 'x'],
 
 frame_1_group = doc.addObject("Part::Compound","frame_1")
 frame_1_group.Links = frame1_list
+doc.recompute()
+frame_1_group.ViewObject.LineWidth=1.
 
 
 # ---------------------- FRAME 2 --------------------------------
 frame2_list = []
 
-# vertical profiles for the frame
-min_aluframez_l = sh_bot_pos_z -  aluframe_w
+# vertical profiles for the frame                          Z
+#                                                          |_ X
+#
+#                          || .sh_bot_pos_z...
+#               aluframey  XX     __          : aluframe_w
+#                __________XX____|  |.........:............
+#  aluframex     ________________|  |                   :
+#                                |  |                   : min_aluframez_l
+#                    aluframez   |  |                   :
+#                                |  |                   :
+#                                |  |                   :
+#                                |  |                   :
+#                ________________|__|...................:
+#   aluframex    ________________|XX|.........: aluframe_w
+#                                 aluframey
+#
+min_aluframez_l = sh_bot_pos_z -  2 * aluframe_w
 aluframez_l = 0
 for alulen in d_alu_l[aluframe_w]:
     if min_aluframez_l > alulen:
@@ -1414,6 +1384,8 @@ for x_sufi, x_sigi in zip(['nx', 'x'], [-1, 1]):
 
 frame_2_group = doc.addObject("Part::Compound","frame_2")
 frame_2_group.Links = frame2_list
+doc.recompute()
+frame_2_group.ViewObject.LineWidth=1.
 
 # ------------------- end frame 2
 
@@ -1427,6 +1399,232 @@ else:
     frame_2_group.ViewObject.Visibility=True
 
 
+# ------------- Structure to hold de objective -----------------
+
+# Plate to hold the objective
+
+# dictionary of the dimensions of the plate
+#d_obj_plate = kcomp_optic.LB2C_PLATE
+#it is the LCP08/M but it has the same dimensions
+d_obj_plate = kcomp_optic.LCP01M_PLATE
+
+# separation of the plate from the cubes, it has to be tight, but also leave
+# a little bit of room to let the cubes move
+OBJ_PLATE_SEP = 1.
+# Z position at its top
+obj_plate_pos_z = H_CUBES - cube_w/2. - OBJ_PLATE_SEP
+obj_plate_pos =  FreeCAD.Vector(0,0,obj_plate_pos_z)
+obj_plate_axis_l = VY
+h_obj_plate = comp_optic.lcp01m_plate (fc_axis_h = VZN, #bottom is on top
+                                       fc_axis_m = VYN,
+                                       cm=1,cp=1,ch=0,
+                                       pos = obj_plate_pos)
+h_obj_plate.color(OPTIC_COLOR_STA)
+
+# Four 6mm diameter rods (ER rods) goes down
+er_rod_l = 150. #the length we had
+er_rod_sep = h_obj_plate.sym_hole_sep
+er_rod_d = h_obj_plate.sym_hole_d
+
+for x_sufi_, x_pos_i in zip(['nx', 'x'], [-er_rod_sep/2.,
+                                           er_rod_sep/2.]):
+    for y_sufi_, y_pos_i in zip(['_ny', '_y'], [-er_rod_sep/2.,
+                                               er_rod_sep/2.]):
+
+        er_rod_top_pos = (obj_plate_pos + DraftVecUtils.scale(cVX,x_pos_i)
+                                        + DraftVecUtils.scale(cVY,y_pos_i))
+        namei = 'er_rod_' + x_sufi + y_sufi
+        fco_er_rod = fcfun.addCylPos(r=er_rod_d/2.,
+                                     h=er_rod_l,
+                                     name=name_i,
+                                     normal = cVZN, pos = er_rod_top_pos)
+
+
+
+# base to hold the objective plate
+
+#                     ref_d = 3                       ref_h = 2
+#      _    _____________3____________    _         1___2
+#     | |  | |                      | |  | |        | | |
+#     |  \/  |___________O__________|  \/  |        | | |_
+#     |______|______________________|______|....    |_|___|....> fc_axis_h
+#                        :                                   ..>   VYN
+#                        :
+#                   fc_axis_d = VYN
+
+
+obj_baseplate_pos_y = obj_plate_pos.y + h_obj_plate.l/2.
+obj_baseplate_pos = FreeCAD.Vector(obj_plate_pos.x,
+                               obj_baseplate_pos_y,
+                               obj_plate_pos_z)
+h_obj_baseplate = comp_optic.lcpb1m_base(fc_axis_d = cVZ,
+                                         fc_axis_h = cVYN,
+                                         ref_d = 3,
+                                         ref_h = 2,
+                                         pos = obj_baseplate_pos)
+h_obj_baseplate.color(OPTIC_COLOR_STA)
+
+# separation of the objective plate to the breadboard
+
+#           Z
+#         Y_|
+#
+#       bboard    h
+#         |  |    1___
+#         |  |    | | |
+#         |  |    | | |_
+#         |  |    |_|___|
+#         |  |
+#                                               Z
+#        w            ref_d = 3                 |_X
+#      _ 2  _____________3____________    _    
+#     | |  | |                      | |  | | 
+#     |  \/  |___________O__________|  \/  |
+#     |______|______________________|______|
+#                        :                  
+
+
+# Point h1 d3
+obj_baseplate_topbolt_pos = (  obj_baseplate_pos
+                             + h_obj_baseplate.fc_1_2_h.negative())
+
+obj_baseplate_to_bb_dist = CUBECEN_VBBOARD_SEP - obj_baseplate_topbolt_pos.y
+
+file_comps.write('separation of the objective plate to the breadboard ' 
+                 + str(obj_baseplate_to_bb_dist) +'\n\n')
+
+# alu profiles down to hold the objective base plate
+if (obj_baseplate_to_bb_dist >= 20) and (obj_baseplate_to_bb_dist < 30):
+    print('using alu 20 profile to hold the objective')
+    aluobj_w = 20.
+    d_aluobj = kcomp.ALU_PROF[aluobj_w]
+else:
+    logger.error('check profile size to hold the objective')
+
+objplate_offset = obj_baseplate_to_bb_dist - aluobj_w
+
+file_comps.write('need a washer D9021 M5 (real thickness = 1.2mm)'
+                 + str(objplate_offset) +'\n\n')
+
+aluobjz_nx_pos_x = obj_baseplate_topbolt_pos.x - h_obj_baseplate.slot_dist/2.
+aluobjz_x_pos_x = obj_baseplate_topbolt_pos.x + h_obj_baseplate.slot_dist/2.
+
+# would be better to be
+aluobjz_l_ideal = obj_baseplate_pos.z - aluobj_w
+aluobjz_y_l = 200. # what we had
+aluobjz_ny_l = 240. # what we had
+
+#  (h_aluframex_ny.pos.y + aluobjz_y_l/2.) : the centered
+aluobjy_l_ideal = ((h_aluframex_y.pos.y - aluobj_w) - 
+                   (h_aluframex_ny.pos.y + aluobj_w/2.))
+aluobjy_l = 160. # what we had
+
+file_comps.write('Ideal length of alu z to hold the the objective at the back'
+                 + str(aluobjz_l_ideal) +'\n')
+file_comps.write('Real length of alu z to hold the the objective at the back'
+                 + '(what we had:' 
+                 + str(aluobjz_y_l) +'\n')
+file_comps.write('Real length of alu z to hold the the objective at the front'
+                 + '(what we had:' 
+                 + str(aluobjz_ny_l) +'\n')
+file_comps.write('Ideal length of alu y to hold the the objective'
+                 + str(aluobjy_l_ideal) +'\n')
+file_comps.write('Real length of alu y to hold the the objective, what we had:'
+                 + str(aluobjy_l) +'\n')
+
+
+
+h_aluobjz_dict = {}
+h_aluobjy_dict = {}
+aluobjz_y_pos_z = h_aluframex_y.pos.z - aluobj_w
+# er_rod_l should be a little more, better 160
+aluobjy_pos_z = aluobjz_y_pos_z - er_rod_l
+#for suf_i, x_sig in zip(['nx', 'x'], [aluobjz_nx_pos_x, aluobjz_x_pos_x]):
+for x_sufi, x_sig in zip(['nx', 'x'], [-1, 1]):
+    aluobjz_y_pos_x = (  obj_baseplate_topbolt_pos.x
+                     + x_sig * h_obj_baseplate.slot_dist/2.)
+    aluobjz_y_pos = FreeCAD.Vector(aluobjz_y_pos_x,
+                                 h_aluframex_y.pos.y,
+                                 aluobjz_y_pos_z)
+    name_i = 'aluobjz_' + x_sufi + '_y'
+    h_aluobjz_y = comps.getaluprof_dir(d_aluobj,
+                                       aluobjz_y_l,
+                                       fc_axis_l = cVZN,
+                                       fc_axis_w = cVYN,
+                                       ref_l = 2, # looking down
+                                       ref_w = 2, # touching the breadboard
+                                       pos = aluobjz_y_pos,
+                                       name = name_i)
+    h_aluobjz_y.color(OPTIC_COLOR_STA)
+    h_aluobjz_dict[(x_sufi + '_y')] = h_aluobjz_y
+
+    # they are not in line with the one at the back, aluobj_w to the outside of
+    # axis X
+    aluobjz_ny_pos_x = aluobjz_y_pos_x + x_sig *  aluobj_w
+    aluobjz_ny_pos = FreeCAD.Vector(aluobjz_ny_pos_x,
+                                    h_aluframex_nz_ny.pos.y,
+                                    h_aluframex_nz_ny.pos.z + aluobj_w)
+    name_i = 'aluobjz_' + x_sufi + '_ny'
+    h_aluobjz_ny = comps.getaluprof_dir(d_aluobj,
+                                       aluobjz_ny_l,
+                                       fc_axis_l = cVZ,
+                                       fc_axis_w = cVYN,
+                                       ref_l = 2, # looking up
+                                       ref_w = 1, # centered
+                                       pos = aluobjz_ny_pos,
+                                       name = name_i)
+    h_aluobjz_ny.color(OPTIC_COLOR_STA)
+    h_aluobjz_dict[(x_sufi + '_ny')] = h_aluobjz_ny
+
+    name_i = 'aluobjy_' + x_sufi
+    aluobjy_pos = FreeCAD.Vector(aluobjz_y_pos_x,
+                                 aluobjz_y_pos.y - aluobj_w,
+                                 aluobjy_pos_z)
+    h_aluobjy = comps.getaluprof_dir(d_aluobj,
+                                     aluobjy_l,
+                                     fc_axis_l = cVYN,
+                                     fc_axis_w = cVZ,
+                                     ref_l = 2, # looking VYN
+                                     ref_w = 1, # symmetrical
+                                     pos = aluobjy_pos,
+                                     name = name_i)
+    h_aluobjy.color(OPTIC_COLOR_STA)
+    h_aluobjy_dict[x_sufi] = h_aluobjy
+
+
+
+
+
+
+
+
+
+
+                                  
+
+# Diameter of the objective at the end where it is screwed:
+OBJ_D = 69.9
+# the objective is at the bottom of the plate, but the plate has been
+# drawn upsidedown (it doesnt matter which way), so its top position
+# will be its bottom and the objetive will be there
+obj_pos = h_obj_plate.topcen_pos
+
+OBJ_H = 136.
+shp_objective = fcfun.shp_cyl (r= OBJ_D/2., h= OBJ_H,
+                               normal =cVZN,
+                               pos=obj_pos)
+# chamfer the bottom
+objective_end_r = 10.
+objective_bot_pos = obj_pos + DraftVecUtils.scale(cVZN,OBJ_H)
+shp_objective = fcfun.shp_cir_fillchmf (shp_objective,
+                                        circen_pos = objective_bot_pos,
+                                        fillet = 0, radius = objective_end_r)
+fco_objective = doc.addObject("Part::Feature", 'objective')
+fco_objective.Shape = shp_objective
+
+# --------------------------------------------------------------
+
+
 n_movegr = len(movegroup_list)
 mvgroup_l = list(set(movegroup_list))
 n_cl_movegr = len(mvgroup_l)
@@ -1436,6 +1634,7 @@ print ("movegroup elements: " + str(n_movegr) + " - " + str(n_cl_movegr))
 
 movegroup = doc.addObject("Part::Compound","movegroup")
 movegroup.Links = mvgroup_l
+movegroup.ViewObject.LineWidth=1.
 # movement range: 3 positions
 movegroup.Placement.Base = FreeCAD.Vector(CUBE_SEP_L,0,0)
 movegroup.Placement.Base = FreeCAD.Vector(-CUBE_SEP_R,0,0)
@@ -1448,16 +1647,24 @@ doc.recompute()
 
 guidoc.ActiveView.setAxisCross(True)
 
+def mov_r(step = 10):
+    if movegroup.Placement.Base.x < CUBE_SEP_L:
+        if movegroup.Placement.Base.x > CUBE_SEP_L - step:
+            movegroup.Placement.Base.x = CUBE_SEP_L
+        else: 
+            movegroup.Placement.Base.x = movegroup.Placement.Base.x + step
 
+def mov_l(step = 10):
+    if movegroup.Placement.Base.x > - CUBE_SEP_R:
+        if movegroup.Placement.Base.x < - CUBE_SEP_R + step:
+            movegroup.Placement.Base.x = - CUBE_SEP_R
+        else: 
+            movegroup.Placement.Base.x = movegroup.Placement.Base.x - step
 
-
-
-
-
-
-
-
-
-
-
-
+def movie():
+    doc = FreeCAD.ActiveDocument
+    for i in range(0, 10):
+        mov_r()
+        time.sleep(1)
+        doc.recompute()
+   
