@@ -296,6 +296,275 @@ class Sk (object):
 
 
 
+class Sk_dir (object):
+
+    """
+     Similar to Sk, but in any direction
+     SK dimensions:
+     dictionary for the dimensions
+     mbolt: is mounting bolt. it corresponds to its metric
+     tbolt: is the tightening bolt.
+    SK12 = { 'd':12.0, 'H':37.5, 'W':42.0, 'L':14.0, 'B':32.0, 'S':5.5,
+             'h':23.0, 'A':21.0, 'b': 5.0, 'g':6.0,  'I':20.0,
+              'mbolt': 5, 'tbolt': 4} 
+
+
+            fc_axis_h
+            :
+         ___:___       _______________________________  tot_h 
+        |  ___  |                     
+        | /   \ |      __________ HoleH = h
+        | \___/ |  __
+      __|       |__ /| __
+     |_____________|/  __ TotD = L ___________________
+ 
+          ___:___                     ___
+         |  ___  |                   |...|       
+         | / 2 \ |                   3 1 |.....> fc_axis_d
+         | \_*_/ |                   |...|
+     ____|       |____               |___|
+    8_:5_____4_____::_|..fc_axis_w   6_7_|....... fc_axis_d
+    :                 :              :   :
+    :... tot_w .......:              :...:
+                                       tot_d
+ 
+    fc_axis_h = axis on the height direction
+    fc_axis_d = axis on the depth (rod) direction
+    fc_axis_w = width (perpendicular) dimension, only useful if I finally
+                include the tightening bolt, or if ref_wc != 1
+    ref_hr : 1: reference at the Rod Height dimension (rod center):
+                points 1, 2, 3
+             0: reference at the base: points 4, 5
+    ref_wc: 1: reference at the center on the width dimension (fc_axis_w)
+                   points: 2, 4,
+            0, reference at one of the bolt holes, point 5
+            -1, reference at one end. point 8
+    ref_dc: 1: reference at the center of the depth dimension
+                   (fc_axis_d) points: 1,7
+                0: reference at one of the ends on the depth dimension
+                   points 3, 6
+
+    """
+
+    # separation of the upper side (it is not defined). Change it
+    # measured for sk12 is 1.2
+    up_sep_dist = 1.2
+
+    # tolerances for holes 
+    holtol = 1.1
+
+    def __init__(self, size,
+                 fc_axis_h = VZ,
+                 fc_axis_d = VX,
+                 fc_axis_w = V0,
+                 ref_hr = 1,
+                 ref_wc = 1,
+                 ref_dc = 1,
+                 pos = V0,
+                 wfco = 1,
+                 name= "shaft_holder"):
+        self.size = size
+        self.wfco = wfco
+        self.name = name
+        self.pos = pos
+        self.ref_hr = ref_hr
+        self.ref_wc = ref_wc
+        self.ref_dc = ref_dc
+
+        doc = FreeCAD.ActiveDocument
+        skdict = kcomp.SK.get(size)
+        if skdict == None:
+            logger.error("Sk size %d not supported", size)
+
+        # normalize de axis
+        axis_h = DraftVecUtils.scaleTo(fc_axis_h,1)
+        axis_d = DraftVecUtils.scaleTo(fc_axis_d,1)
+        if fc_axis_w == V0:
+            axis_w = axis_h.cross(axis_d)
+        else:
+            axis_w = DraftVecUtils.scaleTo(fc_axis_w,1)
+
+        axis_h_n = axis_h.negative()
+        axis_d_n = axis_d.negative()
+        axis_w_n = axis_w.negative()
+        # Total height:
+        sk_h = skdict['H'];
+        self.tot_h = sk_h
+        # Total width (Y):
+        sk_w = skdict['W'];
+        self.tot_w = sk_w
+        # Total depth (x):
+        sk_d = skdict['L'];
+        self.tot_d = sk_d
+        # Base height
+        sk_base_h = skdict['g'];
+        # center width
+        sk_center_w = skdict['I'];
+        # Axis height:
+        sk_axis_h = skdict['h'];
+        self.axis_h = sk_axis_h;
+        # Mounting bolts separation
+        sk_mbolt_sep = skdict['B']
+    
+        # tightening bolt with added tolerances:
+        tbolt_d = skdict['tbolt']
+        # Bolt's head radius
+        tbolt_head_r = (self.holtol
+                        * kcomp.D912_HEAD_D[skdict['tbolt']])/2.0
+        # Bolt's head lenght
+        tbolt_head_l = (self.holtol
+                        * kcomp.D912_HEAD_L[skdict['tbolt']] )
+        # Mounting bolt radius with added tolerance
+        mbolt_r = self.holtol * skdict['mbolt']/2.
+
+        if ref_hr == 1:  # distance vectors on axis_h
+            ref2rod_h = V0
+            ref2base_h = DraftVecUtils.scale(axis_h, -sk_axis_h)
+        else:
+            ref2rod_h = DraftVecUtils.scale(axis_h, sk_axis_h)
+            ref2base_h = V0
+        if ref_wc == 1:  # distance vectors on axis_w
+            ref2cen_w = V0
+            ref2bolt_w = DraftVecUtils.scale(axis_w, -sk_mbolt_sep/2.)
+            ref2end_w = DraftVecUtils.scale(axis_w, -sk_w/2.)
+        elif ref_wc == 0:
+            ref2cen_w =  DraftVecUtils.scale(axis_w, sk_mbolt_sep/2.)
+            ref2bolt_w = V0
+            ref2end_w = DraftVecUtils.scale(axis_w, -(sk_w-sk_mbolt_sep)/2.)
+        else: # ref_wc == -1 at the end on the width dimension
+            ref2cen_w =  DraftVecUtils.scale(axis_w, sk_w/2.)
+            ref2bolt_w = DraftVecUtils.scale(axis_w, (sk_w-sk_mbolt_sep)/2.)
+        if ref_dc == 1:  # distance vectors on axis_d
+            ref2cen_d = V0
+            ref2end_d = DraftVecUtils.scale(axis_d, -sk_d/2.)
+        else:
+            ref2cen_d = DraftVecUtils.scale(axis_d, sk_d/2.)
+            ref2end_d = V0
+
+        basecen_pos = pos + ref2base_h + ref2cen_w + ref2cen_d
+        # Making the tall box:
+        shp_tall = fcfun.shp_box_dir (box_w = sk_center_w, 
+                                  box_d = sk_d,
+                                  box_h = sk_h,
+                                  fc_axis_w = axis_w,
+                                  fc_axis_h = axis_h,
+                                  fc_axis_d = axis_d,
+                                  cw = 1, cd= 1, ch=0, pos = basecen_pos)
+        # Making the wide box:
+        shp_wide = fcfun.shp_box_dir (box_w = sk_w, 
+                                  box_d = sk_d,
+                                  box_h = sk_base_h,
+                                  fc_axis_w = axis_w,
+                                  fc_axis_h = axis_h,
+                                  fc_axis_d = axis_d,
+                                  cw = 1, cd= 1, ch=0, pos = basecen_pos)
+        shp_sk = shp_tall.fuse(shp_wide)
+        doc.recompute()
+        shp_sk = shp_sk.removeSplitter()
+
+        
+        holes = []
+
+        # Shaft hole, 
+        rodcen_pos = pos + ref2rod_h + ref2cen_w + ref2cen_d
+        rod_hole = fcfun.shp_cylcenxtr(r= size/2.,
+                                         h = sk_d,
+                                         normal = axis_d,
+                                         ch = 1,
+                                         xtr_top = 1,
+                                         xtr_bot = 1,
+                                         pos = rodcen_pos)
+        holes.append(rod_hole)
+
+        # the upper sepparation
+        shp_topopen = fcfun.shp_box_dir_xtr (
+                                  box_w = self.up_sep_dist, 
+                                  box_d = sk_d,
+                                  box_h = sk_h-sk_axis_h,
+                                  fc_axis_w = axis_w,
+                                  fc_axis_h = axis_h,
+                                  fc_axis_d = axis_d,
+                                  cw = 1, cd= 1, ch=0,
+                                  xtr_h = 1, xtr_d = 1, xtr_nd = 1,
+                                  pos = rodcen_pos)
+        holes.append(shp_topopen)
+
+        # Tightening bolt hole
+        # tbolt_d is the diameter of the bolt: (M..) M4, ...
+        # tbolt_head_r: is the radius of the tightening bolt's head
+        # (including tolerance), which its bottom either
+        #- is at the middle point between
+        #  - A: the total height :sk_h
+        #  - B: the top of the shaft hole: axis_h + size/2.
+        #  - so the result will be (A + B)/2
+        # tot_h - (axis_h + size/2.)
+        #       _______..A........................
+        #      |  ___  |.B.......+ rodtop2top_dist = sk_h - (axis_h + size/2.) 
+        #      | /   \ |.......+ size/2.
+        #      | \___/ |       :
+        #    __|       |__     + axis_h
+        #   |_____________|....:
+
+        rodtop2top_dist = sk_h - (sk_axis_h + size/2.)
+        tbolt_pos = (   rodcen_pos
+                      + DraftVecUtils.scale(axis_w, sk_center_w/2.)
+                      + DraftVecUtils.scale(axis_h, size/2.)
+                      + DraftVecUtils.scale(axis_h, rodtop2top_dist/2.))
+        shp_tbolt = fcfun.shp_bolt_dir(r_shank= tbolt_d/2.,
+                                        l_bolt = sk_center_w,
+                                        r_head = tbolt_head_r,
+                                        l_head = tbolt_head_l,
+                                        hex_head = 0,
+                                        xtr_head = 1,
+                                        xtr_shank = 1,
+                                        support = 0,
+                                        fc_normal = axis_w_n,
+                                        fc_verx1 = axis_h,
+                                        pos = tbolt_pos)
+        holes.append(shp_tbolt)
+ 
+        #Mounting bolts
+        cen2mbolt_w = DraftVecUtils.scale(axis_w, sk_mbolt_sep/2.)
+        for w_pos in [cen2mbolt_w.negative(), cen2mbolt_w]:
+            mbolt_pos = basecen_pos + w_pos
+            mbolt_hole = fcfun.shp_cylcenxtr(r= mbolt_r,
+                                           h = sk_d,
+                                           normal = axis_h,
+                                           ch = 0,
+                                           xtr_top = 1,
+                                           xtr_bot = 1,
+                                           pos = mbolt_pos)
+            holes.append(mbolt_hole)
+ 
+
+        shp_holes = fcfun.fuseshplist(holes)
+        shp_sk = shp_sk.cut(shp_holes)
+        self.shp = shp_sk
+
+        if wfco == 1:
+            # a freeCAD object is created
+            fco = doc.addObject("Part::Feature", name )
+            fco.Shape = self.shp
+            self.fco = fco
+
+    def color (self, color = (1,1,1)):
+        if self.wfco == 1:
+            self.fco.ViewObject.ShapeColor = color
+        else:
+            logger.debug("Object with no fco")
+
+#doc =FreeCAD.newDocument()
+#h_sk = Sk_dir (size = 12,
+#                 fc_axis_h = VZ,
+#                 fc_axis_d = VX,
+#                 fc_axis_w = V0,
+#                 ref_hr = 0,
+#                 ref_wc = 0,
+#                 ref_dc = 0,
+#                 pos = V0,
+#                 wfco = 1,
+#                 name= "shaft_holder")
+
 
 # --------------------------------------------------------------------
 # Creates a Misumi Aluminun Profile 30x30 Series 6 Width 8
@@ -729,11 +998,249 @@ class AluProf (object):
         
         self.fco = fco_profile
 
+        self.defaluline()
+
     def color (self, color = (1,1,1)):
         self.fco.ViewObject.ShapeColor = color
+        linecol = []
+        for col_i in color:
+            if col_i < 0.2:
+                linecol.append(0.)
+            else:
+                linecol.append(col_i - 0.2)
+        print (str(linecol))       
+        self.fco.ViewObject.LineColor = tuple(linecol)
+        print(str(color) + ' -  '  + str(self.fco.ViewObject.LineColor))
 
 
-# ----------- end class AluProf ----------------------------------------
+    def linecolor (self, color = (1,1,1)):
+        self.fco.ViewObject.LineColor = color
+
+    def linewidth (self, width = 1.):
+        self.fco.ViewObject.LineWidth = width
+
+    def defaluline (self):
+        self.fco.ViewObject.LineColor = (0.5,0.5,0.5)
+        self.fco.ViewObject.LineWidth = 1.
+
+
+
+# ----------- class AluProf_dir ---------------------------------------------
+
+
+class AluProf_dir (object):
+
+    """
+    Creates a generic aluminum profile in any direction
+         :----- width ----:
+         :       slot     :
+         :      :--:      :
+         :______:  :______:
+         |    __|  |__    |
+         | |\ \      / /| |
+         |_| \ \____/ / |_| ...........
+             |        | ......        insquare
+             |  (  )  | ......indiam  :
+          _  |  ____  | ..............:
+         | | / /    \ \ | |
+         | |/ /_    _\ \| | .... 
+         |______|  |______| ....thick
+   
+    width:    the Width of the profile, it is squared
+    length:   the length of the bar, the extrusion 
+    thick: the thickness of the side
+    slot: the width of the rail 
+    insquare: the width of the inner square
+    indiam: the diameter of the inner hole. If 0, there is no hole
+    fc_axis_l = axis on the length direction
+    fc_axis_w = axis on the width direction
+    fc_axis_p = axis on the other width direction (perpendicular)
+            can be V0 if ref_p = 1
+    ref_l: reference (zero) on the fc_axis_l
+            1: reference at the center
+            2: reference at the end, the other end will be on the direction of
+               fc_axis_l
+    ref_w: reference (zero) on the fc_axis_w
+            1: reference at the center
+            2: reference at the side, the other end side will be on the
+               direction of fc_axis_w
+    ref_p: reference (zero) on the fc_axis_p
+            1: reference at the center
+            2: reference at the side, the other end side will be on the
+               direction of fc_axis_p
+    xtr_l: if >0 it will be that extra length on the direction of fc_axis_l
+           I dont think it is useful for a profile, but since it is easy to
+           do, I just do it
+    xtr_nl: if >0 it will be that extra height on the opositve direction of
+             fc_axis_l
+    pos : FreeCAD vector of the position 
+    wfco: 1 a freecad object will be created. 0: only a shape
+    name: name of the freecad object
+    attributes:
+    the arguments and
+    face     : the face that has been extruded
+    shp      : the shape
+    fco      : the freecad object
+   
+     ref_w = 1  ; ref_p = 1
+
+                fc_axis_w
+                :
+                :
+             _  :  _
+            |_|_:_|_|
+      ........|.:.|........ fc_axis_p
+             _|_:_|_
+            |_| : |_|
+                :
+                :
+                :
+   
+   
+     ref_w = 1 ; ref_p = 2              
+
+                fc_axis_w
+                :       
+                :      
+                :  
+                :_     _ 
+                |_|___|_|
+      ..........:.|...|........ fc_axis_p
+                :_|___|_
+                |_|   |_|
+                :
+                :
+                :
+   
+    """
+#
+#  Final                    axis = 'x'  -> Rotation -90 on axis Y: pitch -90
+#             Z             cx = 0      
+#             :             cy = 0      -> Translation Y: width/2
+#             :             cz = 0      -> Translation Z: width/2
+#             :  
+#             :_     _ 
+#             |_|___|_|
+#             : |   |
+#             :_|___|_
+#   ..........|_|...|_|.......Y
+#             :
+#             :
+#             :
+#
+#
+#
+#
+
+    def __init__ (self, width, length, thick, slot, insquare, 
+                  indiam, fc_axis_l = VX, fc_axis_w = VY, fc_axis_p = V0,
+                  ref_l = 0, ref_w = 1, ref_p = 1,
+                  xtr_l=0, xtr_nl=0,  pos = V0,
+                  wfco = 1, name = "aluprof"):
+        doc = FreeCAD.ActiveDocument
+        self.width  = width
+        self.length = length
+        self.thick  = thick
+        self.slot   = slot
+        self.name   = name
+        self.insquare = insquare
+        self.indiam = indiam
+        self.name   = name
+        self.wfco = wfco
+        self.pos = pos
+        # normalize the axis
+        axis_l = DraftVecUtils.scaleTo(fc_axis_l,1)
+        axis_w = DraftVecUtils.scaleTo(fc_axis_w,1)
+        if fc_axis_p == V0:
+            axis_p = axis_l.cross(axis_w)
+        else:
+            axis_p = DraftVecUtils.scaleTo(fc_axis_p,1)
+        axis_l_n = axis_l.negative()
+
+        self.axis_l = axis_l
+        self.axis_w = axis_w
+        self.axis_p = axis_p
+
+        # getting the base position
+
+        if ref_l == 1: # move the postion half of the height down 
+            base_pos = pos + DraftVecUtils.scale(axis_l_n, length/2. + xtr_nl)
+        else:
+            base_pos = pos + DraftVecUtils.scale(axis_l_n, xtr_nl)
+
+
+        # Get the center position
+        if ref_w == 2:
+            ref2center_w = DraftVecUtils.scale(axis_w, width/2.)
+        else:
+            ref2center_w = V0
+        if ref_p == 2:
+            ref2center_p = DraftVecUtils.scale(axis_p, width/2.)
+        else:
+            ref2center_p = V0
+
+        basecen_pos = base_pos + ref2center_w + ref2center_p
+
+
+        shp_alu_wire = fcfun.shp_aluwire_dir (width, thick, slot, insquare,
+                                              fc_axis_x = axis_w,
+                                              fc_axis_y = axis_p,
+                                              ref_x = 1, #already centered
+                                              ref_y = 1, #already centered
+                                              pos = basecen_pos)
+
+
+        # make a face of the wire
+        shp_alu_face = Part.Face (shp_alu_wire)
+        # inner hole
+        if indiam > 0 :
+            hole =  Part.makeCircle (indiam/2.,   # Radius
+                                     basecen_pos,  # Position
+                                     axis_l)  # direction
+            wire_hole = Part.Wire(hole)
+            face_hole = Part.Face(wire_hole)
+            shp_alu_face = shp_alu_face.cut(face_hole)
+
+        # extrude it
+        dir_extrud = DraftVecUtils.scaleTo(axis_l, length + xtr_nl + xtr_l)
+        shp_aluprof = shp_alu_face.extrude(dir_extrud)
+
+        self.shp = shp_aluprof
+        if wfco == 1:
+            fco_aluprof = doc.addObject("Part::Feature", name)
+            fco_aluprof.Shape = shp_aluprof
+        
+        self.fco = fco_aluprof
+
+        self.defaluline()
+
+    def color (self, color = (1,1,1)):
+        self.fco.ViewObject.ShapeColor = color
+        linecol = []
+        for col_i in color:
+            print (str(col_i))
+            if col_i < 0.2:
+                linecol.append(0.)
+            else:
+                linecol.append(col_i - 0.2)
+        print (str(linecol))       
+        self.fco.ViewObject.LineColor = tuple(linecol)
+        print(str(color) + ' -  '  + str(self.fco.ViewObject.LineColor))
+        print(str(linecol))
+
+    def linecolor (self, color = (1,1,1)):
+        self.fco.ViewObject.LineColor = color
+
+    def linewidth (self, width = 1.):
+        self.fco.ViewObject.LineWidth = width
+
+    def defaluline (self):
+        self.fco.ViewObject.LineColor = (0.5,0.5,0.5)
+        self.fco.ViewObject.LineWidth = 1.
+
+
+
+# ----------- end class AluProf_dir ----------------------------------------
 
 # Function that having a dictionary of the aluminum profile, just calls
 # the class AluProf, 
@@ -753,6 +1260,43 @@ def getaluprof ( aludict, length,
                                cx=cx, cy=cy, cz=cz)
 
     return (h_aluprof)
+
+
+# Function that having a dictionary of the aluminum profile, just calls
+# the class AluProf_dir, 
+def getaluprof_dir ( aludict, length, 
+                    fc_axis_l = VX, fc_axis_w = VY, fc_axis_p = V0,
+                    ref_l = 0, ref_w = 1, ref_p = 1,
+                    xtr_l=0, xtr_nl=0,  pos = V0,
+                    wfco = 1, name = "aluprof"):
+
+    h_aluprof = AluProf_dir ( width=aludict['w'],
+                              length = length, 
+                              thick = aludict['t'],
+                              slot  = aludict['slot'],
+                              insquare = aludict['insq'], 
+                              indiam   = aludict['indiam'],
+                              fc_axis_l = fc_axis_l,
+                              fc_axis_w = fc_axis_w,
+                              fc_axis_p = fc_axis_p,
+                              ref_l = ref_l, ref_w = ref_w, ref_p = ref_p,
+                              xtr_l = xtr_l, xtr_nl = xtr_nl,
+                              pos = pos, wfco = wfco,
+                              name = name)
+
+    return (h_aluprof)
+
+
+#doc =FreeCAD.newDocument()
+#h_aluprof = getaluprof_dir(aludict= kcomp.ALU_MOTEDIS_20I5,
+#                         length=50, 
+#                    fc_axis_l = FreeCAD.Vector(1,1,0),
+#                    fc_axis_w = FreeCAD.Vector(-1,1,0),
+#                    fc_axis_p = V0,
+#                    ref_l = 1, ref_w = 2, ref_p = 2,
+#                    xtr_l=0, xtr_nl=0,  pos = FreeCAD.Vector(1,2,4),
+#                    wfco = 1, name = "aluprof")
+
 
 
 #cls_aluprof = getaluprof(aludict= kcomp.ALU_MOTEDIS_20I5,
@@ -777,10 +1321,6 @@ def getaluprof ( aludict, length,
 #                         axis = 'x',
 #                 cx=True, cy=True, cz=True)
 #
-#h_aluprof = getaluprof(aludict= kcomp.ALU_OPENBEAM_5,
-#                         length=50, 
-#                         axis = 'y',
-#                 cx=False, cy=True, cz=False)
 
             
 # ----------- NEMA MOTOR

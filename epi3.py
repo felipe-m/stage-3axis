@@ -43,8 +43,8 @@ filepath = os.getcwd()
 sys.path.append(filepath) 
 # Either one of these 2 to select the path, inside the tree, copied by
 # git subtree, or in its one place
-#sys.path.append(filepath + '/' + 'modules/comps'
-sys.path.append(filepath + '/' + '../comps')
+sys.path.append(filepath + '/' + 'modules/comps')
+#sys.path.append(filepath + '/' + '../comps')
 
 # where the freecad document is going to be saved
 savepath = filepath + "/../../freecad/citometro/py/"
@@ -195,9 +195,13 @@ h_vbreadboard = comp_optic.f_breadboard(kcomp_optic.BREAD_BOARD_M,
 
 
 # color of the different objects
-OPTIC_COLOR = fcfun.CIAN_08
+OPTIC_COLOR = fcfun.GRAY_08
 OPTIC_COLOR_STA = fcfun.GREEN_D07  #Optics that are not moving, static
-LED_COLOR = fcfun.CIAN_05
+# https://academo.org/demos/wavelength-to-colour-relationship/
+# http://lsrtools.1apps.com/wavetorgb/index.asp
+LED_RED = (1., 57./255, 0.) # 635nm 
+LED_BLUE = (0., 204./255, 1.) # 480nm 
+LED_UV = (114./255, 0., 124./255) # 480nm 
 ALU_COLOR = fcfun.YELLOW_05
 ALUFRAME_COLOR = fcfun.GREEN_07
 ALU_COLOR_STA = (0.8, 0.2, 0.2)
@@ -319,7 +323,7 @@ pos_led_c = (  pos_tubelens_c
 h_led_c = comp_optic.ThLed30(fc_axis=VY, fc_axis_cable=VZN,
                              pos = pos_led_c, name='led_c')
 
-h_led_c.color(LED_COLOR)
+h_led_c.color(LED_UV)
 # the freecad object
 fco_led_c = h_led_c.fco
 movegroup_list.append(fco_led_c)
@@ -327,7 +331,7 @@ movegroup_list.append(fco_led_c)
 fco_led_r = Draft.clone(fco_led_c)
 fco_led_r.Label = 'led_r'
 fco_led_r.Placement.Base.x = CUBE_SEP_R
-fco_led_r.ViewObject.ShapeColor = LED_COLOR
+fco_led_r.ViewObject.ShapeColor = LED_RED
 movegroup_list.append(fco_led_r)
 
 # the led on the left is a Prizmatix:
@@ -336,7 +340,7 @@ movegroup_list.append(fco_led_r)
 pos_led_l = pos_led_c + DraftVecUtils.scale(VXN, CUBE_SEP_L)
 
 h_led_l = comp_optic.PrizLed(VY, VZ, pos_led_l, name='led_l_prizmatix')
-h_led_l.color(LED_COLOR)
+h_led_l.color(LED_BLUE)
 movegroup_list.append(h_led_l.fco)
 
 
@@ -1667,4 +1671,24 @@ def movie():
         mov_r()
         time.sleep(1)
         doc.recompute()
-   
+
+# Linear Filter AAA check distances
+pos_linfilter = pos_emitubelens_c + FreeCAD.Vector(0,0,2+h_emitubelens_c.length)
+shp_linfilter = fcfun.shp_boxcen(x = 60., y = 25., z = 2.5,
+                                 cx = True, cy = True,
+                                 pos = pos_linfilter)
+
+fco_linfilter = doc.addObject("Part::Feature", 'linfilter')
+fco_linfilter.Shape = shp_linfilter
+fco_linfilter.ViewObject.Transparency = 90
+
+# Porta AAA check distances
+
+pos_porta = objective_bot_pos +  FreeCAD.Vector(0,0,-25.)
+shp_porta = fcfun.shp_boxcen(x = 25., y = 75., z = 2.5,
+                                 cx = True, cy = True,
+                                 pos = pos_porta)
+
+fco_porta = doc.addObject("Part::Feature", 'porta')
+fco_porta.Shape = shp_porta
+fco_porta.ViewObject.Transparency = 60

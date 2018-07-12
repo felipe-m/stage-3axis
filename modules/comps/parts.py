@@ -39,6 +39,7 @@ from fcfun import addBolt, addBoltNut_hole, NutHole
 from kcomp import TOL
 
 
+stl_dir = "/stl/"
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(%(levelname)s - %(message)s')
@@ -86,14 +87,27 @@ class AluProfBracketPerp (object):
         alusize_lin: width of the aluminum profile on the line
         alusize_perp: width of the perpendicular aluminum profile
         brack_thick: thickness of the bracket
-        bolt_d: metric of the bolt 3, 4, ... (integer)
-        nbolts_lin: 1: just one bolt on the fc_lin_ax, or two bolts
-                   2: two bolts on the fc_lin_ax, or two bolts
+        bolt_lin_d: metric of the bolt 3, 4, ... (integer)
+        bolt_perp_d: metric of the bolt 3, 4, ... (integer) on the profile line
+            if 0, the same as bolt_lin_d
+        nbolts_lin: number of bolts one bolt on the fc_lin_ax, 
+                   number of bolts: two bolts on the fc_lin_ax
+        bolts_lin_dist = If more than one bolt on fc_lin_ax, defines the 
+                   distance between them.
+                   if zero, takes min distance
+        bolts_lin_rail = instead of bolt holes, it will be a rail
+                  it doesnt make sense to have number of bolts with this option
+                  it will work on 2 bolts or more. If nbolts_lin == 3, it 
+                  will make a rail between them. so it will be the same to have
+                  nbolts_lin = 2 and bolts_lin_dist = 20
+                  nbolts_lin = 3 and bolts_lin_dist = 10
+                  The rail will be 20, and it will look the same, it will be
+                  more clear to have the first option: 2 bolts
         xtr_bolt_head : extra space for the bolt head length,
                         and making a space for it
         xtr_bolt_head_d : extra space for the bolt head diameter,
                           and making a space for it. For the wall bolt
-        reinforce = 1,
+        reinforce = 1, if it is reinforced on the sides of lin profile
         fc_perp_ax: axis of the bracket on the perpendicular prof, see picture
         fc_line_ax: axis of the bracket on the aligned profile, see picture
         pos : position of the center of the bracket on the intersection
@@ -108,8 +122,11 @@ class AluProfBracketPerp (object):
     def __init__(self, alusize_lin, alusize_perp,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3, #metric of the bolt
+                 bolt_lin_d = 3, #metric of the bolt 
+                 bolt_perp_d = 0, #metric of the bolt
                  nbolts_lin = 1,
+                 bolts_lin_dist = 0,
+                 bolts_lin_rail = 0,
                  xtr_bolt_head = 3,
                  xtr_bolt_head_d = 0,
                  reinforce = 1,
@@ -121,11 +138,23 @@ class AluProfBracketPerp (object):
 
         doc = FreeCAD.ActiveDocument
         self.name = name
-        bolt_dict = kcomp.D912[3]
-        bolthead_r = bolt_dict['head_r']
-        bolthead_r_tol = bolt_dict['head_r_tol']
-        boltshank_r_tol = bolt_dict['shank_r_tol']
-        bolthead_l = bolt_dict['head_l']
+        # bolt lin dimensions
+        boltli_dict = kcomp.D912[bolt_lin_d]
+        boltlihead_r = boltli_dict['head_r']
+        boltlihead_r_tol = boltli_dict['head_r_tol']
+        boltlishank_r_tol = boltli_dict['shank_r_tol']
+        boltlihead_l = boltli_dict['head_l']
+        if bolt_perp_d == 0:
+            bolt_perp_d = bolt_lin_d
+        boltpe_dict = kcomp.D912[bolt_perp_d]
+        boltpehead_r = boltpe_dict['head_r']
+        boltpehead_r_tol = boltpe_dict['head_r_tol']
+        boltpeshank_r_tol = boltpe_dict['shank_r_tol']
+        boltpehead_l = boltpe_dict['head_l']
+
+        boltmaxhead_r = max(boltlihead_r, boltpehead_r)
+        boltmaxhead_r_tol = max(boltlihead_r_tol, boltpehead_r_tol)
+
         # normalize axis, just in case:
         axis_perp = DraftVecUtils.scaleTo(fc_perp_ax,1)
         axis_lin = DraftVecUtils.scaleTo(fc_lin_ax,1)
@@ -134,27 +163,33 @@ class AluProfBracketPerp (object):
         axis_wid   = axis_perp.cross(axis_lin)
 
         #Calculate the length of the brlin_l
-        #         br_perp_thick :bolthead_l
-        #                  :  : : bolthead_r
+        #         br_perp_thick :boltpehead_l
+        #                  :  : : boltlihead_r
         #              ....:__: :  :
         #              :   |  |_   :
         # alusize_perp +   |  |_| _:_
         #              :   |  |__|___|___ 
         #              :...|_____________|
         #                  :.......:
-        #                   + boltlin_dist = br_perp_thick+bolthead_l+bolthead_r
+        #                 bolt1li_dist = br_perp_thick+boltpehead_l+boltlihead_r
         #                          :  :  :
-        #                        2 x bolthead_r
+        #                        2 x boltlihead_r
         #                  :.............:
         #                      + brlin_l
 
-        boltlin_dist = (  br_perp_thick + bolthead_l + bolthead_r_tol
+        bolt1li_dist = (  br_perp_thick + boltpehead_l + boltlihead_r_tol
                         + xtr_bolt_head )
 
-        brlin_l = boltlin_dist + 2 * bolthead_r
+
+        brlin_l = bolt1li_dist + 2 * boltlihead_r
         if nbolts_lin > 1:
-            # for every new bolt, add 3 times the bolt head radius
-            brlin_l = brlin_l + (nbolts_lin-1)* 3 *  bolthead_r
+            if bolts_lin_dist == 0:
+                # for every new bolt, add 3 times the bolt head radius
+                bolts_lin_dist = 3 *  boltlihead_r
+            elif bolts_lin_dist <  (3 *  boltlihead_r) :
+                logger.warning ('bolt_lin_dist too short')
+                bolts_lin_dist = 3 *  boltlihead_r
+            brlin_l = brlin_l + (nbolts_lin-1)* bolts_lin_dist
 
         #              ....:__: :  :           _________
         #              :   |  |_   :          ||       ||
@@ -195,15 +230,16 @@ class AluProfBracketPerp (object):
         # cut the box inside
         # Inside width
         # add one, to have it a minimum of one mm
-        if reinforce == 1 and (alusize_lin > 2*(bolthead_r + kcomp.TOL) + 1 ):
-            inside_w =  2*(bolthead_r + kcomp.TOL)
-            print ("inside width " + str(inside_w))
+        if (reinforce == 1 and
+           (alusize_lin > 2*(boltmaxhead_r + kcomp.TOL) + 1 )):
+            inside_w =  2*(boltmaxhead_r + kcomp.TOL)
+            #print ("inside width " + str(inside_w))
         else:
             #no space for reinforcement, or reinforcement 0
             inside_w = alusize_lin + 2 # +2 to make the cut
 
         # chamfer of the inside box
-        chmf_in_r = alusize_perp/2. - br_lin_thick -bolthead_r_tol
+        chmf_in_r = alusize_perp/2. - br_lin_thick -boltpehead_r_tol
         logger.debug ("chamfer radius" + str(chmf_in_r))
 
         # inside box:
@@ -225,56 +261,79 @@ class AluProfBracketPerp (object):
         #Part.show(shp_insbox)
         shp_box = shp_box.cut(shp_insbox)
 
-        #pos_boltperp =  pos + DraftVecUtils.scale(axis_perp,alusize_perp/2.) 
-        #shp_boltperp= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
+        #pos_boltpe =  pos + DraftVecUtils.scale(axis_perp,alusize_perp/2.) 
+        #shp_boltpe= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
         #                    h=brack_thick,
         #                    normal = axis_lin,
         #                    ch = 0, xtr_top = 1, xtr_bot=1,
-        #                    pos = pos_boltperp)
+        #                    pos = pos_boltpe)
 
         boltholes = []
-        pos_boltperp =  (pos + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
-                       + DraftVecUtils.scale(axis_lin,br_perp_thick+bolthead_l))
-        shp_boltperp = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
-                            l_bolt = br_perp_thick + bolthead_l,
-                            r_head = bolthead_r_tol + xtr_bolt_head_d/2.,
-                            l_head = bolthead_l,
+        pos_boltpe =  (pos + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
+                     + DraftVecUtils.scale(axis_lin,br_perp_thick+boltpehead_l))
+        shp_boltpe = fcfun.shp_bolt_dir(r_shank = boltpeshank_r_tol,
+                            l_bolt = br_perp_thick + boltpehead_l,
+                            r_head = boltpehead_r_tol + xtr_bolt_head_d/2.,
+                            l_head = boltpehead_l,
                             xtr_head = xtr_bolt_head,
                             xtr_shank = 1,
                             support = 0,
                             fc_normal = axis_lin_neg,
                             fc_verx1 = axis_perp, #it doesnt matter
-                            pos = pos_boltperp)
-        boltholes.append(shp_boltperp)
+                            pos = pos_boltpe)
+        boltholes.append(shp_boltpe)
 
-
-        pos_boltlin =  pos + DraftVecUtils.scale(axis_lin,boltlin_dist) 
-        shp_boltlin= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
-                            h=br_lin_thick,
-                            normal = axis_perp,
-                            ch = 0, xtr_top = 1, xtr_bot=1,
-                            pos = pos_boltlin)
-        boltholes.append(shp_boltlin)
-
-        shp_boltfuse = shp_boltlin.fuse(shp_boltperp)
-
-        #if nbolts_lin > 1:
-        for ibolt in range (1, nbolts_lin):
-            # for every new bolt, add 3 times the bolt head radius
-            pos_boltlin = (  pos_boltlin
-                           + DraftVecUtils.scale(axis_lin,3 *  bolthead_r)) 
-            shp_boltlin= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
-                            h=br_lin_thick,
-                            normal = axis_perp,
-                            ch = 0, xtr_top = 1, xtr_bot=1,
-                            pos = pos_boltlin)
-            boltholes.append(shp_boltlin)
+        # position of the first bolt
+        pos_boltli =  pos + DraftVecUtils.scale(axis_lin,bolt1li_dist) 
+        pos_boltli_top = (pos_boltli
+                         + DraftVecUtils.scale(axis_perp, alusize_perp))
+        if bolts_lin_rail == 1 and nbolts_lin > 1:
+            # there is a rail
+            rail_l = (nbolts_lin - 1) * bolts_lin_dist
+            # 2 Stadium to cut the chamfer if it is too big
+            shp_railli = fcfun.shp_2stadium_dir (length = rail_l,
+                               r_s = boltlishank_r_tol,
+                               r_l = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
+                               h_tot = alusize_perp,
+                               h_rl = alusize_perp-br_lin_thick,
+                               fc_axis_h = axis_perp_neg,
+                               fc_axis_l = axis_lin,
+                               ref_l = 2, #ref on the circle center
+                               rl_h0 = 1, #bolt head is on pos
+                               xtr_h = 1,
+                               xtr_nh = 1,
+                               pos = pos_boltli_top)
+            boltholes.append(shp_railli)
+        else: # holes for the bolts
+            # first boltli hole , make a bolt, in case there is chamfer to cut
+            shp_boltli = fcfun.shp_bolt_dir(r_shank = boltlishank_r_tol,
+                            l_bolt = alusize_perp,
+                            r_head = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
+                            l_head = alusize_perp-br_lin_thick,
+                            xtr_head = 1,
+                            xtr_shank = 1,
+                            support = 0,
+                            fc_normal = axis_perp_neg,
+                            fc_verx1 = axis_lin, #it doesnt matter
+                            pos = pos_boltli_top)
+            boltholes.append(shp_boltli)
+            # the rest of boltli holes
+            for ibolt in range (1, nbolts_lin):
+                pos_boltli = (  pos_boltli
+                               + DraftVecUtils.scale(axis_lin,bolts_lin_dist)) 
+                shp_boltli= fcfun.shp_cylcenxtr(r=boltlishank_r_tol,
+                                h=br_lin_thick,
+                                normal = axis_perp,
+                                ch = 0, xtr_top = 1, xtr_bot=1,
+                                pos = pos_boltli)
+                boltholes.append(shp_boltli)
 
         shp_boltfuse = fcfun.fuseshplist(boltholes)
 
         shp_bracket = shp_box.cut(shp_boltfuse)
         doc.recompute()
         shp_bracket =shp_bracket.removeSplitter()
+        doc.recompute()
 
         self.shp = shp_bracket
         self.wfco = wfco
@@ -295,7 +354,7 @@ class AluProfBracketPerp (object):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + "/stl/"
         stlFileName = stlPath + name + ".stl"
         self.shp.exportStl(stlFileName)
        
@@ -329,6 +388,77 @@ class AluProfBracketPerp (object):
 #                 pos = V0,
 #                 wfco=1,
 #                 name = 'bracket_lin3_2bolts_noreinfore')
+
+#doc = FreeCAD.newDocument()
+
+#AluProfBracketPerp ( alusize_lin = 10, alusize_perp = 20,
+#                 br_perp_thick = 3.,
+#                 br_lin_thick = 3.,
+#                 bolt_lin_d = 3,
+#                 bolt_perp_d = 3,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 0,
+#                 bolts_lin_rail = 0,
+#                 xtr_bolt_head = 3,
+#                 xtr_bolt_head_d = 2*kcomp.TOL, # space for the nut
+#                 reinforce = 1,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_lin3_1bolt_noreinfore')
+
+#AluProfBracketPerp ( alusize_lin = 20, alusize_perp = 10,
+#                 br_perp_thick = 3.,
+#                 br_lin_thick = 3.,
+#                 bolt_lin_d = 3,
+#                 bolt_perp_d = 3,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 0,
+#                 bolts_lin_rail = 0,
+#                 xtr_bolt_head = 3,
+#                 xtr_bolt_head_d = 2*kcomp.TOL, # space for the nut
+#                 reinforce = 1,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_lin3_1bolt_noreinfore')
+
+
+#AluProfBracketPerp ( alusize_lin = 25, alusize_perp = 20,
+#                 br_perp_thick = 4.,
+#                 br_lin_thick = 4.,
+#                 bolt_lin_d = 6,
+#                 bolt_perp_d = 4,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 50,
+#                 bolts_lin_rail = 1,
+#                 xtr_bolt_head = 3,
+#                 xtr_bolt_head_d = 2*kcomp.TOL, # space for the nut
+#                 reinforce = 1,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_lin3_1bolt_noreinfore')
+#
+#AluProfBracketPerp ( alusize_lin = 25, alusize_perp = 10,
+#                 br_perp_thick = 3.,
+#                 br_lin_thick = 3.,
+#                 bolt_lin_d = 6,
+#                 bolt_perp_d = 3,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 50,
+#                 bolts_lin_rail = 1,
+#                 xtr_bolt_head = 3,
+#                 xtr_bolt_head_d = 2*kcomp.TOL, # space for the nut
+#                 reinforce = 1,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_lin3_1bolt_noreinfore')
 
 
 # ----------- class AluProfBracketPerpWide -----------------------------------
@@ -375,9 +505,22 @@ class AluProfBracketPerpFlap (object):
         alusize_lin: width of the aluminum profile on the line
         alusize_perp: width of the perpendicular aluminum profile
         brack_thick: thickness of the bracket
-        bolt_d: metric of the bolt 3, 4, ... (integer)
+        bolt_lin_d: metric of the bolt 3, 4, ... (integer)
+        bolt_perp_d: metric of the bolt 3, 4, ... (integer) on the profile line
+            if 0, the same as bolt_lin_d
         nbolts_lin: 1: just one bolt on the fc_lin_ax, or two bolts
                    2: two bolts on the fc_lin_ax, or two bolts
+        bolts_lin_dist = If more than one bolt on fc_lin_ax, defines the 
+                   distance between them.
+                   if zero, takes min distance
+        bolts_lin_rail = instead of bolt holes, it will be a rail
+                  it doesnt make sense to have number of bolts with this option
+                  it will work on 2 bolts or more. If nbolts_lin == 3, it 
+                  will make a rail between them. so it will be the same to have
+                  nbolts_lin = 2 and bolts_lin_dist = 20
+                  nbolts_lin = 3 and bolts_lin_dist = 10
+                  The rail will be 20, and it will look the same, it will be
+                  more clear to have the first option: 2 bolts
         xtr_bolt_head : extra space for the bolt head on the line to the wall
                         (perpendicular)
         sunk : 1: if the top part is removed,
@@ -400,8 +543,11 @@ class AluProfBracketPerpFlap (object):
     def __init__(self, alusize_lin, alusize_perp,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3, #metric of the bolt
+                 bolt_lin_d = 3, #metric of the bolt
+                 bolt_perp_d = 0, #metric of the bolt
                  nbolts_lin = 1,
+                 bolts_lin_dist = 0,
+                 bolts_lin_rail = 0,
                  xtr_bolt_head = 1,
                  sunk = 1,
                  flap = 1,
@@ -413,11 +559,19 @@ class AluProfBracketPerpFlap (object):
 
         doc = FreeCAD.ActiveDocument
         self.name = name
-        bolt_dict = kcomp.D912[3]
-        bolthead_r = bolt_dict['head_r']
-        bolthead_r_tol = bolt_dict['head_r_tol']
-        boltshank_r_tol = bolt_dict['shank_r_tol']
-        bolthead_l = bolt_dict['head_l']
+        boltli_dict = kcomp.D912[bolt_lin_d]
+        boltlihead_r = boltli_dict['head_r']
+        boltlihead_r_tol = boltli_dict['head_r_tol']
+        boltlishank_r_tol = boltli_dict['shank_r_tol']
+        boltlihead_l = boltli_dict['head_l']
+        if bolt_perp_d == 0:
+            bolt_perp_d = bolt_lin_d
+        boltpe_dict = kcomp.D912[bolt_perp_d]
+        boltpehead_r = boltpe_dict['head_r']
+        boltpehead_r_tol = boltpe_dict['head_r_tol']
+        boltpeshank_r_tol = boltpe_dict['shank_r_tol']
+        boltpehead_l = boltpe_dict['head_l']
+
         # normalize axis, just in case:
         axis_perp = DraftVecUtils.scaleTo(fc_perp_ax,1)
         axis_lin = DraftVecUtils.scaleTo(fc_lin_ax,1)
@@ -426,27 +580,32 @@ class AluProfBracketPerpFlap (object):
         axis_wid   = axis_perp.cross(axis_lin)
 
         #Calculate the length of the brlin_l
-        #                  :+  br_perp_thick :bolthead_l
+        #                  :+  br_perp_thick :boltpehead_l
         #                  :  :+xtr_bolt_head
-        #                  :  : : + bolthead_r
+        #                  :  : : + boltlihead_r
         #              ....:__: :  :
         #              :   |  |    :
         # alusize_perp +   |  |   _:_
         #              :   |  |__|___|___ 
         #              :...|_____________|
         #                  :.......:
-        #                   +boltlin_dist=br_perp_thick+xtr_bolt_head+bolthead_r
+        #                 +bolt1li_dist=br_perp_thick+xtr_bolt_head+boltlihead_r
         #                          :  :  :
-        #                        2 x bolthead_r
+        #                        2 x boltlihead_r
         #                  :.............:
         #                      + brlin_l
 
-        boltlin_dist = br_perp_thick + xtr_bolt_head + bolthead_r 
+        bolt1li_dist = br_perp_thick + xtr_bolt_head + boltlihead_r 
 
-        brlin_l = boltlin_dist + 2 * bolthead_r
+        brlin_l = bolt1li_dist + 2 * boltlihead_r
         if nbolts_lin > 1:
-            # for every new bolt, add 3 times the bolt head radius
-            brlin_l = brlin_l + (nbolts_lin-1)* 3 *  bolthead_r
+            if bolts_lin_dist == 0:
+                # for every new bolt, add 3 times the bolt head radius
+                bolts_lin_dist = 3 *  boltlihead_r
+            elif bolts_lin_dist <  (3 *  boltlihead_r) :
+                logger.warning ('bolt_lin_dist too short')
+                bolts_lin_dist = 3 *  boltlihead_r
+            brlin_l = brlin_l + (nbolts_lin-1)* bolts_lin_dist
 
         #                      1
         #              ....:__: : :        _____________________
@@ -458,7 +617,7 @@ class AluProfBracketPerpFlap (object):
         #                    + brlin_l    :     :alusize_lin
         #                                 :.....:
         #                                  oneflap_w:
-        #                                  min(4xbolthead_r, alusize_lin)
+        #                                  min(4xboltpehead_r, alusize_lin)
         #                                 :.....................:
         #                                   totalflap_w
 
@@ -473,7 +632,7 @@ class AluProfBracketPerpFlap (object):
 
         oneflap_w = 0
         if flap == 1:
-            oneflap_w = min(4*bolthead_r, alusize_lin)
+            oneflap_w = min(4*boltpehead_r, alusize_lin)
             totalflap_w = alusize_lin + 2 * oneflap_w
             shp_flap = fcfun.shp_box_dir (box_w = totalflap_w,
                                           box_d = br_perp_thick,
@@ -493,11 +652,12 @@ class AluProfBracketPerpFlap (object):
                            + DraftVecUtils.scale(axis_wid, isg * alusize_lin))
                 chmf_pts.append(chmf_pt_pos)
 
+            # reinforcement of the flaps with the central space
             shp_boxbr = fcfun.shp_filletchamfer_dirpts(shp_boxbr,
                                                        fc_axis = axis_perp,
                                                        fc_pts = chmf_pts,
                                                        fillet = 0,
-                                                       radius = bolthead_r )
+                                                       radius = boltpehead_r )
 
             doc.recompute()
             shp_boxbr =shp_boxbr.removeSplitter()
@@ -529,15 +689,15 @@ class AluProfBracketPerpFlap (object):
             # cut the box inside
             # Inside width
             # add one, to have it a minimum of one mm
-            if (sunk == 1) and (alusize_lin > 2*(bolthead_r + kcomp.TOL) + 1):
-                inside_w =  2*(bolthead_r + kcomp.TOL)
-                print ("inside width " + str(inside_w))
+            if (sunk == 1) and (alusize_lin > 2*(boltlihead_r + kcomp.TOL) + 1):
+                inside_w =  2*(boltlihead_r + kcomp.TOL)
+                #print ("inside width " + str(inside_w))
             else:
                 # no space for reinforcement, or no reinforcement (sunk == 2)
                 inside_w = alusize_lin + oneflap_w + 2 # +2 to make the cut
 
             # chamfer of the inside box
-            chmf_in_r = alusize_perp/2. - br_lin_thick -bolthead_r_tol
+            chmf_in_r = alusize_perp/2. - br_lin_thick -boltlihead_r_tol
             logger.debug ("chamfer radius" + str(chmf_in_r))
 
             insbox_pos = ( pos + DraftVecUtils.scale(axis_lin,br_perp_thick)
@@ -557,69 +717,90 @@ class AluProfBracketPerpFlap (object):
                                                      radius = chmf_in_r)
             shp_boxbr = shp_boxbr.cut(shp_insbox)
 
-            #pos_boltperp = pos +DraftVecUtils.scale(axis_perp,alusize_perp/2.) 
-            #shp_boltperp= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
+            #pos_boltpe = pos +DraftVecUtils.scale(axis_perp,alusize_perp/2.) 
+            #shp_boltpe= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
             #                    h=brack_thick,
             #                    normal = axis_lin,
             #                    ch = 0, xtr_top = 1, xtr_bot=1,
-            #                    pos = pos_boltperp)
+            #                    pos = pos_boltpe)
 
         if flap == 1:
-            boltperp_dist_w = (alusize_lin+oneflap_w)/2
-            for iboltperp in [-boltperp_dist_w,boltperp_dist_w]:
-                pos_boltperp =  (pos
-                        + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
-                        + DraftVecUtils.scale(axis_lin,br_perp_thick+bolthead_l)
-                        + DraftVecUtils.scale(axis_wid, iboltperp))
-                shp_boltperp = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
-                                l_bolt = br_perp_thick + bolthead_l,
-                                r_head = bolthead_r_tol + kcomp.TOL, #extra TOL
-                                l_head = bolthead_l,
-                                xtr_head = 2,
-                                xtr_shank = 1,
-                                support = 0,
-                                fc_normal = axis_lin_neg,
-                                fc_verx1 = axis_perp, #it doesnt matter
-                                pos = pos_boltperp)
-                boltholes.append(shp_boltperp)
+            boltpe_dist_w = (alusize_lin+oneflap_w)/2
+            for iboltpe in [-boltpe_dist_w,boltpe_dist_w]:
+                pos_boltpe =  (pos
+                      + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
+                      + DraftVecUtils.scale(axis_lin,br_perp_thick+boltpehead_l)
+                      + DraftVecUtils.scale(axis_wid, iboltpe))
+                shp_boltpe = fcfun.shp_bolt_dir(r_shank = boltpeshank_r_tol,
+                              l_bolt = br_perp_thick + boltpehead_l,
+                              r_head = boltpehead_r_tol + kcomp.TOL, #extra TOL
+                              l_head = boltpehead_l,
+                              xtr_head = 2,
+                              xtr_shank = 1,
+                              support = 0,
+                              fc_normal = axis_lin_neg,
+                              fc_verx1 = axis_perp, #it doesnt matter
+                              pos = pos_boltpe)
+                boltholes.append(shp_boltpe)
 
 
-        pos_boltlin = ( pos + DraftVecUtils.scale(axis_lin,boltlin_dist) +
+        # position of the first bolt, on top
+        pos_boltli = ( pos + DraftVecUtils.scale(axis_lin,bolt1li_dist) +
                         DraftVecUtils.scale(axis_perp, alusize_perp))
-        shp_boltlin = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
+        if bolts_lin_rail == 1 and nbolts_lin > 1:
+            # there is rail
+            rail_l = (nbolts_lin - 1) * bolts_lin_dist
+            # make the hole also for the head of the bolts, even that maybe
+            # it is not necessary because it is sunk
+            shp_railli = fcfun.shp_2stadium_dir (length = rail_l,
+                               r_s = boltlishank_r_tol,
+                               r_l = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
+                               h_tot = alusize_perp,
+                               h_rl = alusize_perp-br_lin_thick,
+                               fc_axis_h = axis_perp_neg,
+                               fc_axis_l = axis_lin,
+                               ref_l = 2, #ref on the circle center
+                               rl_h0 = 1, #bolt head is on pos
+                               xtr_h = 1,
+                               xtr_nh = 1,
+                               pos = pos_boltli)
+            boltholes.append(shp_railli)
+        else :
+            # first bolt hole:
+            shp_boltli = fcfun.shp_bolt_dir(r_shank = boltlishank_r_tol,
                             l_bolt = alusize_perp,
-                            r_head = bolthead_r_tol + kcomp.TOL/2., #extra TOL
+                            r_head = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
                             l_head = alusize_perp-br_lin_thick,
                             xtr_head = 1,
                             xtr_shank = 1,
                             support = 0,
                             fc_normal = axis_perp_neg,
                             fc_verx1 = axis_lin, #it doesnt matter
-                            pos = pos_boltlin)
-        boltholes.append(shp_boltlin)
+                            pos = pos_boltli)
+            boltholes.append(shp_boltli)
 
-        #if nbolts_lin > 1:
-        for ibolt in range (1, nbolts_lin):
-            # for every new bolt, add 3 times the bolt head radius
-            pos_boltlin = (  pos_boltlin
-                           + DraftVecUtils.scale(axis_lin,3 *  bolthead_r)) 
-            shp_boltlin = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
+            #if nbolts_lin > 1:
+            for ibolt in range (1, nbolts_lin):
+                pos_boltli = (  pos_boltli
+                               + DraftVecUtils.scale(axis_lin,bolts_lin_dist)) 
+                shp_boltli = fcfun.shp_bolt_dir(r_shank = boltlishank_r_tol,
                             l_bolt = alusize_perp,
-                            r_head = bolthead_r_tol + kcomp.TOL/2., #extra TOL
+                            r_head = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
                             l_head = alusize_perp-br_lin_thick,
                             xtr_head = 1,
                             xtr_shank = 1,
                             support = 0,
                             fc_normal = axis_perp_neg,
                             fc_verx1 = axis_lin, #it doesnt matter
-                            pos = pos_boltlin)
-            boltholes.append(shp_boltlin)
+                            pos = pos_boltli)
+                boltholes.append(shp_boltli)
 
         shp_boltfuse = fcfun.fuseshplist(boltholes)
 
         shp_bracket = shp_boxbr.cut(shp_boltfuse)
         doc.recompute()
         shp_bracket =shp_bracket.removeSplitter()
+        doc.recompute()
 
         self.shp = shp_bracket
         self.wfco = wfco
@@ -640,16 +821,20 @@ class AluProfBracketPerpFlap (object):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + "/stl/"
         stlFileName = stlPath + name + ".stl"
         self.shp.exportStl(stlFileName)
 
 #doc = FreeCAD.newDocument()
 
-#AluProfBracketPerpFlap ( alusize_lin = 10, alusize_perp = 10,
-#                         br_perp_thick = 3.,
+#AluProfBracketPerpFlap ( alusize_lin = 10, alusize_perp = 15,
+#                         br_perp_thick = 4.,
 #                         br_lin_thick = 3.,
+#                         bolt_lin_d = 3,
+#                         bolt_perp_d = 3,
 #                         nbolts_lin = 2,
+#                         bolts_lin_dist = 0,
+#                         bolts_lin_rail = 0,
 #                         xtr_bolt_head = 1,
 #                         sunk = 0,
 #                         flap = 1, 
@@ -658,6 +843,41 @@ class AluProfBracketPerpFlap (object):
 #                         pos = V0,
 #                         wfco=1,
 #                         name = 'bracket3_flap')
+
+#AluProfBracketPerpFlap ( alusize_lin = 15, alusize_perp = 10,
+#                         br_perp_thick = 4.,
+#                         br_lin_thick = 3.,
+#                         bolt_lin_d = 3,
+#                         bolt_perp_d = 3,
+#                         nbolts_lin = 2,
+#                         bolts_lin_dist = 0,
+#                         bolts_lin_rail = 0,
+#                         xtr_bolt_head = 1,
+#                         sunk = 0,
+#                         flap = 1, 
+#                         fc_perp_ax = VZ,
+#                         fc_lin_ax = VX,
+#                         pos = V0,
+#                         wfco=1,
+#                         name = 'bracket3_flap')
+
+#AluProfBracketPerpFlap ( alusize_lin = 25, alusize_perp = 20,
+#                         br_perp_thick = 4.,
+#                         br_lin_thick = 4.,
+#                         bolt_lin_d = 6,
+#                         bolt_perp_d = 4.,
+#                         nbolts_lin = 2,
+#                         bolts_lin_dist = 50,
+#                         bolts_lin_rail = 1,
+#                         xtr_bolt_head = 1,
+#                         sunk = 0,
+#                         flap = 1, 
+#                         fc_perp_ax = VZ,
+#                         fc_lin_ax = VX,
+#                         pos = V0,
+#                         wfco=1,
+#                         name = 'bracket3_flap')
+
 
 #AluProfBracketPerpFlap ( alusize_lin = 10, alusize_perp = 10,
 #                         br_perp_thick = 3.,
@@ -738,9 +958,22 @@ class AluProfBracketPerpTwin (object):
         alusize_perp: width of the perpendicular aluminum profile
         alu_sep: separation of the 2 paralell profiles, from their centers
         brack_thick: thickness of the bracket
-        bolt_d: metric of the bolt 3, 4, ... (integer)
+        bolt_lin_d: metric of the bolt 3, 4, ... (integer)
+        bolt_perp_d: metric of the bolt 3, 4, ... (integer) on the profile line
+            if 0, the same as bolt_lin_d
         nbolts_lin: 1: just one bolt on the fc_lin_ax, or two bolts
                    2: two bolts on the fc_lin_ax, or two bolts
+        bolts_lin_dist = If more than one bolt on fc_lin_ax, defines the 
+                   distance between them.
+                   if zero, takes min distance
+        bolts_lin_rail = instead of bolt holes, it will be a rail
+                  it doesnt make sense to have number of bolts with this option
+                  it will work on 2 bolts or more. If nbolts_lin == 3, it 
+                  will make a rail between them. so it will be the same to have
+                  nbolts_lin = 2 and bolts_lin_dist = 20
+                  nbolts_lin = 3 and bolts_lin_dist = 10
+                  The rail will be 20, and it will look the same, it will be
+                  more clear to have the first option: 2 bolts
         bolt_perp_line: 1: if it has a bolt on the wall (perp) but in line
                    with the line aluminum profiles
                    0: no bolt 
@@ -764,8 +997,11 @@ class AluProfBracketPerpTwin (object):
                  alu_sep,
                  br_perp_thick = 3.,
                  br_lin_thick = 3.,
-                 bolt_d = 3, #metric of the bolt
+                 bolt_lin_d = 3, #metric of the bolt
+                 bolt_perp_d = 0, #metric of the bolt
                  nbolts_lin = 1,
+                 bolts_lin_dist = 1,
+                 bolts_lin_rail = 0,
                  bolt_perp_line = 0,
                  xtr_bolt_head = 3,
                  sunk = 0,
@@ -779,11 +1015,19 @@ class AluProfBracketPerpTwin (object):
         doc = FreeCAD.ActiveDocument
         self.name = name
 
-        bolt_dict = kcomp.D912[3]
-        bolthead_r = bolt_dict['head_r']
-        bolthead_r_tol = bolt_dict['head_r_tol']
-        boltshank_r_tol = bolt_dict['shank_r_tol']
-        bolthead_l = bolt_dict['head_l']
+        boltli_dict = kcomp.D912[bolt_lin_d]
+        boltlihead_r = boltli_dict['head_r']
+        boltlihead_r_tol = boltli_dict['head_r_tol']
+        boltlishank_r_tol = boltli_dict['shank_r_tol']
+        boltlihead_l = boltli_dict['head_l']
+        if bolt_perp_d == 0:
+            bolt_perp_d = bolt_lin_d
+        boltpe_dict = kcomp.D912[bolt_perp_d]
+        boltpehead_r = boltpe_dict['head_r']
+        boltpehead_r_tol = boltpe_dict['head_r_tol']
+        boltpeshank_r_tol = boltpe_dict['shank_r_tol']
+        boltpehead_l = boltpe_dict['head_l']
+
         # normalize axis, just in case:
         axis_perp = DraftVecUtils.scaleTo(fc_perp_ax,1)
         axis_lin = DraftVecUtils.scaleTo(fc_lin_ax,1)
@@ -802,8 +1046,11 @@ class AluProfBracketPerpTwin (object):
                                         alusize_perp = alusize_perp,
                                         br_perp_thick = br_perp_thick,
                                         br_lin_thick = br_lin_thick,
-                                        bolt_d = bolt_d,
+                                        bolt_lin_d = bolt_lin_d,
+                                        bolt_perp_d = bolt_perp_d,
                                         nbolts_lin = nbolts_lin,
+                                        bolts_lin_dist = bolts_lin_dist,
+                                        bolts_lin_rail = bolts_lin_rail,
                                         xtr_bolt_head = xtr_bolt_head,
                                         reinforce = reinforce,
                                         fc_perp_ax = axis_perp,
@@ -814,10 +1061,13 @@ class AluProfBracketPerpTwin (object):
                                         alusize_perp = alusize_perp,
                                         br_perp_thick = br_perp_thick,
                                         br_lin_thick = br_lin_thick,
-                                        bolt_d = bolt_d,
+                                        bolt_lin_d = bolt_lin_d,
+                                        bolt_perp_d = bolt_perp_d,
                                         nbolts_lin = nbolts_lin,
-                                        reinforce = reinforce,
+                                        bolts_lin_dist = bolts_lin_dist,
+                                        bolts_lin_rail = bolts_lin_rail,
                                         xtr_bolt_head = xtr_bolt_head,
+                                        reinforce = reinforce,
                                         fc_perp_ax = axis_perp,
                                         fc_lin_ax = axis_lin,
                                         pos = brlin2_pos,
@@ -828,10 +1078,14 @@ class AluProfBracketPerpTwin (object):
                                         alusize_perp = alusize_perp,
                                         br_perp_thick = br_perp_thick,
                                         br_lin_thick = br_lin_thick,
+                                        bolt_lin_d = bolt_lin_d,
+                                        bolt_perp_d = bolt_perp_d,
                                         nbolts_lin = nbolts_lin,
+                                        bolts_lin_dist = bolts_lin_dist,
+                                        bolts_lin_rail = bolts_lin_rail,
+                                        xtr_bolt_head = xtr_bolt_head,
                                         sunk = sunk,
                                         flap = 0, #no flap
-                                        xtr_bolt_head = xtr_bolt_head,
                                         fc_perp_ax = axis_perp,
                                         fc_lin_ax = axis_lin,
                                         pos = pos,
@@ -841,9 +1095,13 @@ class AluProfBracketPerpTwin (object):
                                         alusize_perp = alusize_perp,
                                         br_perp_thick = br_perp_thick,
                                         br_lin_thick = br_lin_thick,
+                                        bolt_lin_d = bolt_lin_d,
+                                        bolt_perp_d = bolt_perp_d,
                                         nbolts_lin = nbolts_lin,
-                                        sunk = sunk,
+                                        bolts_lin_dist = bolts_lin_dist,
+                                        bolts_lin_rail = bolts_lin_rail,
                                         xtr_bolt_head = xtr_bolt_head,
+                                        sunk = sunk,
                                         flap = 0, #no flap
                                         fc_perp_ax = axis_perp,
                                         fc_lin_ax = axis_lin,
@@ -885,55 +1143,56 @@ class AluProfBracketPerpTwin (object):
                                                     fc_axis = axis_perp,
                                                     fc_pts = chmf_pts,
                                                     fillet = 0,
-                                                    radius = bolthead_r )
+                                                    radius = boltpehead_r )
 
         doc.recompute()
         shp_twinbr = shp_twinbr.removeSplitter()
 
         bolthole_list = []
-        if bolt_perp_line == 1 or union_w < 8 * bolthead_r:
+        if bolt_perp_line == 1 or union_w < 8 * boltpehead_r:
             # one bolt in the middle
-            pos_boltperp =  (pos
+            pos_boltpe =  (pos
                     + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
-                    + DraftVecUtils.scale(axis_lin,br_perp_thick+bolthead_l)
+                    + DraftVecUtils.scale(axis_lin,br_perp_thick+boltpehead_l)
                     + DraftVecUtils.scale(axis_wid, alu_sep/2.))
-            shp_boltperp = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
-                            l_bolt = br_perp_thick + bolthead_l,
-                            r_head = bolthead_r_tol + kcomp.TOL, #extra TOL
-                            l_head = bolthead_l,
+            shp_boltpe = fcfun.shp_bolt_dir(r_shank = boltpeshank_r_tol,
+                            l_bolt = br_perp_thick + boltpehead_l,
+                            r_head = boltpehead_r_tol + kcomp.TOL, #extra TOL
+                            l_head = boltpehead_l,
                             xtr_head = 2,
                             xtr_shank = 1,
                             support = 0,
                             fc_normal = axis_lin_neg,
                             fc_verx1 = axis_perp, #it doesnt matter
-                            pos = pos_boltperp)
-            bolthole_list.append(shp_boltperp)
+                            pos = pos_boltpe)
+            bolthole_list.append(shp_boltpe)
         else:
             # 2 holes:
-            boltperp_w_pos1 = alusize_lin/2. + 2* bolthead_r
-            boltperp_w_pos2 = alu_sep - alusize_lin/2. - 2* bolthead_r
-            for w_pos in [boltperp_w_pos1, boltperp_w_pos2]:
-                pos_boltperp =  (pos
+            boltpe_w_pos1 = alusize_lin/2. + 2* boltpehead_r
+            boltpe_w_pos2 = alu_sep - alusize_lin/2. - 2* boltpehead_r
+            for w_pos in [boltpe_w_pos1, boltpe_w_pos2]:
+                pos_boltpe =  (pos
                     + DraftVecUtils.scale(axis_perp,alusize_perp/2.)
-                    + DraftVecUtils.scale(axis_lin,br_perp_thick+bolthead_l)
+                    + DraftVecUtils.scale(axis_lin,br_perp_thick+boltpehead_l)
                     + DraftVecUtils.scale(axis_wid, w_pos))
-                shp_boltperp = fcfun.shp_bolt_dir(r_shank = boltshank_r_tol,
-                            l_bolt = br_perp_thick + bolthead_l,
-                            r_head = bolthead_r_tol + kcomp.TOL, #extra TOL
-                            l_head = bolthead_l,
+                shp_boltpe = fcfun.shp_bolt_dir(r_shank = boltpeshank_r_tol,
+                            l_bolt = br_perp_thick + boltpehead_l,
+                            r_head = boltpehead_r_tol + kcomp.TOL, #extra TOL
+                            l_head = boltpehead_l,
                             xtr_head = 2,
                             xtr_shank = 1,
                             support = 0,
                             fc_normal = axis_lin_neg,
                             fc_verx1 = axis_perp, #it doesnt matter
-                            pos = pos_boltperp)
-                bolthole_list.append(shp_boltperp)
+                            pos = pos_boltpe)
+                bolthole_list.append(shp_boltpe)
 
-        shp_boltperp = fcfun.fuseshplist(bolthole_list)
+        shp_boltpe = fcfun.fuseshplist(bolthole_list)
 
-        shp_twinbr = shp_twinbr.cut(shp_boltperp)
+        shp_twinbr = shp_twinbr.cut(shp_boltpe)
         doc.recompute()
         shp_bracket =shp_twinbr.removeSplitter()
+        doc.recompute()
 
         self.shp = shp_bracket
         self.wfco = wfco
@@ -948,13 +1207,13 @@ class AluProfBracketPerpTwin (object):
             self.fco.ViewObject.ShapeColor = color
         else:
             logger.debug("Bracket object with no fco")
-        
+
     # exports the shape into stl format
     def export_stl (self, name = ""):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + "/stl/"
         stlFileName = stlPath + name + ".stl"
         self.shp.exportStl(stlFileName)
 
@@ -977,15 +1236,56 @@ class AluProfBracketPerpTwin (object):
 #                 wfco=1,
 #                 name = 'bracket_twin3')
 
-#AluProfBracketPerpTwin ( alusize_lin = 10, alusize_perp = 10,
-#                 alu_sep = 40.,
+#AluProfBracketPerpTwin ( alusize_lin = 16, alusize_perp = 30,
+#                 alu_sep = 25.,
+#                 br_perp_thick = 4.,
+#                 br_lin_thick = 4.,
+#                 bolt_lin_d = 6,
+#                 bolt_perp_d = 4,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 15,
+#                 bolts_lin_rail = 1,
+#                 bolt_perp_line = 0,
+#                 xtr_bolt_head = 4, # more extra because of the perp bolt
+#                 sunk = 0,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 fc_wide_ax = VY,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_twin3_perp')
+
+#AluProfBracketPerpTwin ( alusize_lin = 16, alusize_perp = 15,
+#                 alu_sep = 25.,
+#                 br_perp_thick = 4.,
+#                 br_lin_thick = 4.,
+#                 bolt_lin_d = 6,
+#                 bolt_perp_d = 3,
+#                 nbolts_lin = 2,
+#                 bolts_lin_dist = 15,
+#                 bolts_lin_rail = 1,
+#                 bolt_perp_line = 0,
+#                 xtr_bolt_head = 4, # more extra because of the perp bolt
+#                 sunk = 0,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 fc_wide_ax = VY,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'bracket_twin3_perp')
+
+#AluProfBracketPerpTwin ( alusize_lin = 16, alusize_perp = 10,
+#                 alu_sep = 25.,
 #                 br_perp_thick = 3.,
 #                 br_lin_thick = 3.,
-#                 bolt_d = 3,
+#                 bolt_lin_d = 6,
+#                 bolt_perp_d = 3.,
 #                 nbolts_lin = 2,
-#                 bolt_perp_line = 1,
+#                 bolts_lin_dist = 15,
+#                 bolts_lin_rail = 1,
+#                 bolt_perp_line = 0,
 #                 xtr_bolt_head = 4, # more extra because of the perp bolt
-#                 sunk = 2,
+#                 sunk = 0,
 #                 fc_perp_ax = VZ,
 #                 fc_lin_ax = VX,
 #                 fc_wide_ax = VY,
@@ -1043,6 +1343,8 @@ class AluProfBracketPerpTwin (object):
 # holdbolt_d: diameter of the bolts used to attach this part to the aluminum
 #   profile
 # above_h: height of this piece above the aluminum profile
+# rail: posibility of having a rail instead of holes for mounting the 
+#       holder. It has been made fast, so there may be bugs
 # mindepth: If there is a minimum depth. Sometimes needed for the endstop
 #            to reach its target
 # attach_dir: Normal vector to where the holder is attached:'x','-x','y','-y'
@@ -1060,6 +1362,7 @@ class AluProfBracketPerpTwin (object):
 class IdlePulleyHolder (object):
 
     def __init__ (self, profile_size, pulleybolt_d, holdbolt_d, above_h,
+                  rail = 0,
                   mindepth = 0,
                   attach_dir = '-y', endstop_side = 0,
                   endstop_posh = 0,
@@ -1179,31 +1482,58 @@ class IdlePulleyHolder (object):
             shp_face_base = Part.Face(shp_wire_base)
             shp_box = shp_face_base.extrude(FreeCAD.Vector(0,0,height))
 
-
-
             hbolt_p0x = p0x + sg * hbolt_endsep
             #shank of holding bolt
             pos_shank_hbolt0 = FreeCAD.Vector(hbolt_p0x,
                                               -1,
                                              -profile_size/2.)
-            shp_shank_hbolt0 = fcfun.shp_cyl ( r = holdbolt_d/2. + TOL,
+            if rail == 0:
+                shp_shank_hbolt0 = fcfun.shp_cyl ( r = holdbolt_d/2. + TOL,
                                                h= bolt_shank + 2, normal = VY,
                                                pos = pos_shank_hbolt0)
-            if depth > bolt_shank :
-                pos_head_hbolt0 = FreeCAD.Vector(hbolt_p0x,
+                if depth > bolt_shank :
+                    pos_head_hbolt0 = FreeCAD.Vector(hbolt_p0x,
                                                  bolt_shank,
                                                  -profile_size/2.)
-                shp_head_hbolt0 = fcfun.shp_cyl (
+                    shp_head_hbolt0 = fcfun.shp_cyl (
                                            r = holdbolthead_d/2. + TOL,
                                            h = depth - bolt_shank + 1,
                                            normal = VY,
                                            pos = pos_head_hbolt0)
-                shp_hbolt0 = shp_shank_hbolt0.fuse(shp_head_hbolt0)
-            else: # no head
-                shp_hbolt0 = shp_shank_hbolt0 
-            shp_hbolt1 = shp_hbolt0.copy()
-            # It is in zero
-            shp_hbolt1.Placement.Base.x = sg * hbolt_sep
+                    shp_hbolt0 = shp_shank_hbolt0.fuse(shp_head_hbolt0)
+                else: # no head
+                    shp_hbolt0 = shp_shank_hbolt0 
+                shp_hbolt1 = shp_hbolt0.copy()
+                # It is in zero
+                shp_hbolt1.Placement.Base.x = sg * hbolt_sep
+            else:
+                rail = min(rail, above_h-profile_size/2.)
+                shp_shank_hbolt0 = fcfun.shp_stadium_dir (
+                                            length = rail,
+                                            radius = holdbolt_d/2. + TOL,
+                                            height= bolt_shank + 2,
+                                            fc_axis_l = VZ,
+                                            fc_axis_h = VY,
+                                            ref_l = 2, ref_h = 2,
+                                            pos = pos_shank_hbolt0)
+                if depth > bolt_shank :
+                    pos_head_hbolt0 = FreeCAD.Vector(hbolt_p0x,
+                                                 bolt_shank,
+                                                 -profile_size/2.)
+                    shp_head_hbolt0 = fcfun.shp_stadium_dir (
+                                           length = rail,
+                                           radius = holdbolthead_d/2. + TOL,
+                                           height = depth - bolt_shank + 1,
+                                           fc_axis_l = VZ,
+                                           fc_axis_h = VY,
+                                            ref_l = 2, ref_h = 2,
+                                           pos = pos_head_hbolt0)
+                    shp_hbolt0 = shp_shank_hbolt0.fuse(shp_head_hbolt0)
+                else: # no head
+                    shp_hbolt0 = shp_shank_hbolt0 
+                shp_hbolt1 = shp_hbolt0.copy()
+                # It is in zero
+                shp_hbolt1.Placement.Base.x = sg * hbolt_sep
 
             # hole for the pulley bolt
             pulleybolt_pos = FreeCAD.Vector (0, depth - pulleydepth/2.,
@@ -1212,6 +1542,7 @@ class IdlePulleyHolder (object):
                                             h = pulleybolt_h + 1,
                                             normal = VZ,
                                             pos = pulleybolt_pos)
+                                   
                                             
             holes_list = [shp_hbolt0, shp_hbolt1]
             # hole for the nut:
@@ -1303,10 +1634,23 @@ class IdlePulleyHolder (object):
 
 #doc = FreeCAD.newDocument()
 
-#idp = IdlePulleyHolder( profile_size=30.,
+#idp = IdlePulleyHolder( profile_size=20.,
 #                        pulleybolt_d=3.,
 #                        holdbolt_d = 5,
-#                        above_h = 47-15-9.5,
+#                        #above_h = 47-15-9.5,
+#                        above_h = 35. - 1.,
+#                        mindepth = 0,
+#                        attach_dir = '-y',
+#                        endstop_side = 0,
+#                        endstop_posh = 0,
+#                        name = "idlepulleyhold")
+
+
+#idp = IdlePulleyHolder( profile_size=30.,
+#                        pulleybolt_d=3.,
+#                        holdbolt_d = 4,
+#                        above_h = 40,
+#                        rail = 30,
 #                        mindepth = 0,
 #                        attach_dir = '-y',
 #                        endstop_side = 0,
@@ -1414,7 +1758,422 @@ def endstopholder_rail ():
     box = obox.cut(shp_fusecut)
     #Part.show (box)
     return (box)
+
+class SimpleEndstopHolder (object):
+
+    """
+        Very simple endstop holder to be attached to a alu profile and
+        that can be adjusted
+
+              rail_l         fc_axis_w
+           ...+....           :
+          :        :          :
+        ______________________:
+       |   ________           |
+       |  (________)      O   |
+       |   ________           |-----> fc_axis_d
+       |  (________)      O   |
+       |______________________|
+                    :          :
+                    estp_tot_h
+
+       ref_d points:          fc_axis_h
+                              :
+       1___2______3_______4___5.............     ref_h = 2
+       | :..........:    : : |:.....       + h
+       |__:________:_____:_:_|:.....base_h.:     ref_h = 1
+
+
+       ref_w points
+                             fc_axis_w
+        _____________________ :
+       |   ________     |    |:
+       |  (________) ---| 0  |:
+       1   ________  ---|    |:-----> fc_axis_d.
+       3  (________) ---| 2  |:
+       4________________|____|:
+
+                               
+        _____________________ .......
+       | :          :    : : |:.....: endstop_nut_dist 
+       | :..........:   :   :|:     
+       |__:________:____:___:|:.....
+ 
+                  if endstop_nut_dist == 0
+                    just take the length+TOL of the nut
+        _____________________ 
+       | :          :    : : |:
+       | :..........:    : : |:.....
+       |__:________:____:___:|:.....kcomp.NUT_D934_L[estp_bolt_d]+TOL
+
+
+        d_endstop: dictionary of the endstop
+        rail_l: length of the rail, but only the internal length, not counting
+               the arches to make the semicircles for the bolts
+               just from semicircle center to the other semicircle center
+        h: total height, if 0 it will be the minimum height
+        base_h: height for the base (for the mounting bolts)
+        holder_out: the endstop holder can end a little bit before to avoid
+               it to be the endstop
+        mbolt_d: diameter (metric) of the mounting bolts (for the holder
+               not for the endstop
+        endstop_nut_dist: distance from the top to the endstop nut.
+               if zero
+        min_d: 1: make the endstop axis_d dimension the minimum
+        ref_h: reference (zero) of fc_axis_h
+                1: at the bottom
+                2: on top
+        ref_d: reference (zero) of fc_axis_d
+               1 = at the end on the side of the rails
+               2 = at the circle center of one rail (closer to 1)
+               3 = at the circle center of the other rail, closer to endstop
+               4 = at the bolt of the endstop
+               5 = at the end of the endstop (the holder ends before that)
+        ref_w: reference on fc_axis_w. it is symmetrical, only the negative side
+               1 = centered
+               2 = at one endstop bolt
+                   the other endstop bolt will be on the direction of fc_axis_w
+               3 = at one rail center
+                   the rail center will be on the direction of fc_axis_w
+               4 = at the end
+                   the end will be on the direction of fc_axis_w
+        wfco: 1 a freecad object will be created
+
+        the rails can be countersunk to make space for the bolts
+
+    """
+
+    def __init__(self,
+                 d_endstop,
+                 rail_l = 15,
+                 base_h = 5.,
+                 h = 0,
+                 holder_out = 2.,
+                 #csunk = 1,
+                 mbolt_d = 3.,
+                 endstop_nut_dist = 0,
+                 min_d = 0,
+                 fc_axis_d = VX,
+                 fc_axis_w = V0,
+                 fc_axis_h = VZ,
+                 ref_d = 1,
+                 ref_w = 1,
+                 ref_h = 1,
+                 pos = V0,
+                 wfco = 1,
+                 name = 'simple_enstop_holder'):
+
+        self.wfco = wfco
+        self.name = name
+        self.base_h = base_h,
+        doc = FreeCAD.ActiveDocument
+        # normalize the axis
+        axis_h = DraftVecUtils.scaleTo(fc_axis_h,1)
+        axis_d = DraftVecUtils.scaleTo(fc_axis_d,1)
+        if fc_axis_w == V0:
+            axis_w = axis_h.cross(axis_d)
+        else:
+            axis_w = DraftVecUtils.scaleTo(fc_axis_w,1)
+        axis_h_n = axis_h.negative()
+        axis_d_n = axis_d.negative()
+        axis_w_n = axis_w.negative()    
+
+        self.axis_h = axis_h
+        self.axis_d = axis_d
+        self.axis_w = axis_w
+        # best axis to print, to be pointing up:
+        self.axis_print = axis_h
+
+        self.d_endstop = d_endstop
+
+        #                              :holder_out
+        #      __:________:____________: :..................
+        #     |   _________      |     |                   :
+        #     |  (_________) ----| 0   |                   + tot_w
+        #     |   _________  ----|     |-----> fc_axis_d   :
+        #     |  (_________) ----| 0   |                   :
+        #     |__________________|_____|...................:
+        #     :  :         : :   : :     :
+        #     :  :..rail_l.: :   : :     :
+        #     :  :         : :   :.:     :
+        #     :bolthead_d  : :   : +estp_bolt_dist
+        #                  : :   :       :
+        #          bolthead_r:   :.......:
+        #                    :      +estp_d
+        #                    :           :
+        #                    :.estp_tot_d:
+        #     :...................._..:  :
+        #         tot_d
+
+        #      The width depend which side is larger
+        #
+        #                     ...... ______________________ ....
+        #        mbolt_head_r ......|   ________     |     |    :
+        #        mbolt_head_d ......|  (________) ---| 0   |    :
+        #mbolt_head_d or more ......|   ________  ---|     |    + estp_w or more
+        #        mbolt_head_d ......|  (________) ---| 0   |    :
+        #        mbolt_head_r ......|________________|_____|....:
+
+
+        # mounting bolt data
+        d_mbolt = kcomp.D912[int(mbolt_d)]  #dictionary of the mounting bolt
+        #print(str(d_mbolt))
+        mbolt_r_tol = d_mbolt['shank_r_tol']
+        mbolt_head_r = d_mbolt['head_r']
+        mbolt_head_r_tol = d_mbolt['head_r_tol']
+        mbolt_head_l = d_mbolt['head_l']
+        print (str(mbolt_head_l))
+        # endstop data. change h->d, d->h, l->w
+        estp_tot_d = d_endstop['HT']
+        estp_d = d_endstop['H']
+        estp_bolt_dist = d_endstop['BOLT_H']
+        estp_bolt_sep = d_endstop['BOLT_SEP']
+        estp_bolt_d = d_endstop['BOLT_D']  #diameter, not depth
+        estp_w = d_endstop['L']
+
+        # length of the pins:
+        estp_pin_d  = estp_tot_d - estp_d
+        if min_d == 0:
+            tot_d = 3*mbolt_head_r + rail_l + estp_tot_d - holder_out
+            # nut axis: (nut axis of the hexagon vertex
+            hex_verx = axis_d
+        else:
+            # Taking the minimum lenght, very tight
+            tot_d = (3*mbolt_head_r + rail_l + estp_d - holder_out
+                     + estp_pin_d/2.)
+            hex_verx = axis_w # less space
+
+        # Total width is the largest value from:
+        # - the width(length) of the endstop
+        # - the rail width: 2 bolt head diameters, and 2 more: 1 diameter 
+        #   between, and a radius to the end
+        tot_w = max(estp_w, 8 * mbolt_head_r)
+ 
+        if h== 0:
+            tot_h = base_h + mbolt_head_l
+        else:
+            tot_h = base_h + mbolt_head_l
+            if tot_h > h:
+                logger.debug('h is smaller that it should, taking: ')
+                logger.debug(str(tot_h))
+            else:
+                tot_h = h
+
+        self.tot_h = tot_h
+        self.tot_w = tot_w
+        self.tot_d = tot_d
+
+        if endstop_nut_dist == 0:
+            endstop_nut_l =  kcomp.NUT_D934_L[estp_bolt_d]+TOL
+        else:
+            if endstop_nut_dist > tot_h -  kcomp.NUT_D934_L[estp_bolt_d]+TOL:
+                logger.debug('endstop_nut_dist: ' + str(endstop_nut_dist)
+                             + ' larger than total height - (nut length+tol): '
+                             + str(tot_h) + ' - '
+                             + str( kcomp.NUT_D934_L[estp_bolt_d] + TOL))
+                endstop_nut_l =  kcomp.NUT_D934_L[estp_bolt_d]+TOL
+            else:
+                endstop_nut_l = tot_h - endstop_nut_dist
+
             
+        # ------------ DISTANCES ON AXIS_D
+        # ref_d points:          fc_axis_h
+                               
+        #  1___2______3_______4__.5.............     ref_h = 2
+        #  | :..........:    : : |:.....       + h
+        #  |__:________:_____:_:_|:.....base_h.:     ref_h = 1
+
+        # the end it is not on the holder because of -holder_out
+        # distance from 1 to 2 in axis_d
+        dis_1_2_d = 2* mbolt_head_r
+        dis_1_3_d = dis_1_2_d + rail_l
+        #dis_2_3_d = rail_l
+        dis_1_5_d = tot_d + holder_out
+        dis_1_4_d = dis_1_5_d - (estp_d - estp_bolt_dist)
+
+        fc_1_2_d = DraftVecUtils.scale(axis_d, dis_1_2_d)
+        fc_1_3_d = DraftVecUtils.scale(axis_d, dis_1_3_d)
+        fc_1_4_d = DraftVecUtils.scale(axis_d, dis_1_4_d)
+        fc_1_5_d = DraftVecUtils.scale(axis_d, dis_1_5_d)
+        # vector from the reference point to point 1 on axis_d
+        if ref_d == 1: 
+            refto_1_d = V0
+        elif ref_d == 2:
+            refto_1_d = fc_1_2_d.negative()
+        elif ref_d == 3:
+            refto_1_d = fc_1_3_d.negative()
+        elif ref_d == 4:
+            refto_1_d = fc_1_4_d.negative()
+        elif ref_d == 5:
+            refto_1_d = fc_1_5_d.negative()
+        else:
+            logger.error('wrong reference point')
+
+        # ------------ DISTANCES ON AXIS_W
+        # ref_w points
+        #                      fc_axis_w
+        #  _____________________ :
+        # |   ________     |    |:
+        # |  (________) ---| 0  |:
+        # 1   ________  ---|    |:-----> fc_axis_d.
+        # 3  (________) ---| 2  |:
+        # 4________________|____|:
+
+        # distance from 1 to 2 on axis_w
+        dis_1_2_w = estp_bolt_sep/2.
+        dis_1_4_w = tot_w/2.
+        dis_1_3_w = dis_1_4_w - 2* mbolt_head_r
+
+        fc_1_2_w = DraftVecUtils.scale(axis_w_n, dis_1_2_w)
+        fc_1_3_w = DraftVecUtils.scale(axis_w_n, dis_1_3_w)
+        fc_1_4_w = DraftVecUtils.scale(axis_w_n, dis_1_4_w)
+        # vector from the reference point to point 1 on axis_w
+        if ref_w == 1: 
+            refto_1_w = V0
+        elif ref_w == 2:
+            refto_1_w = fc_1_2_w.negative()
+        elif ref_w == 3:
+            refto_1_w = fc_1_3_w.negative()
+        elif ref_w == 4:
+            refto_1_w = fc_1_4_w.negative()
+        else:
+            logger.error('wrong reference point')
+
+        # ------------ DISTANCES ON AXIS_H
+        fc_1_2_h = DraftVecUtils.scale(axis_h, tot_h)
+        fc_2_1_h = fc_1_2_h.negative()
+        if ref_h == 1: 
+            refto_2_h = fc_1_2_h
+        elif ref_h == 2:
+            refto_2_h = V0
+        else:
+            logger.error('wrong reference point')
+
+
+        # Situation of the point on d=1, s=1, h=2
+        #       ____________
+        #      /
+        #     * d1_w1_h2
+        #    /____________
+        #    |
+        #
+        # this is an absolute position
+        d1_w1_h2_pos = pos + refto_1_d + refto_1_w + refto_2_h
+        d1_w1_h1_pos = d1_w1_h2_pos + fc_2_1_h
+
+
+        # draw the box from this point d1 s1 h2
+        shp_box = fcfun.shp_box_dir(box_w = tot_w,
+                                    box_d = tot_d,
+                                    box_h = tot_h,
+                                    fc_axis_h = axis_h_n,
+                                    fc_axis_d = axis_d,
+                                    cw = 1, cd = 0, ch = 0,
+                                    pos = d1_w1_h2_pos)
+
+        shp_box = fcfun.shp_filletchamfer_dir(shp_box, fc_axis = axis_h,
+                                              fillet=1,
+                                              radius = 2)
+
+        holes = []
+        # holes for the endstop bolts, point: d4 w2 h1
+        for fc_1_2_wi in [fc_1_2_w, fc_1_2_w.negative()]:
+            pos_estpbolt = d1_w1_h1_pos + fc_1_4_d + fc_1_2_wi
+            # hole with the nut hole
+            shp_estpbolt = fcfun.shp_bolt_dir (
+                                r_shank= (estp_bolt_d+TOL)/2.,
+                                l_bolt = tot_h,
+                                r_head = (kcomp.NUT_D934_D[estp_bolt_d]+TOL)/2.,
+                                l_head = endstop_nut_l,
+                                hex_head = 1,
+                                xtr_head = 1, xtr_shank = 1,
+                                fc_normal = axis_h,
+                                fc_verx1 = hex_verx,
+                                pos = pos_estpbolt)
+            holes.append(shp_estpbolt)
+        # holes for the rails, point d2 w3 h2
+        for fc_1_3_wi in [fc_1_3_w, fc_1_3_w.negative()]:
+            #hole for the rails, use the function stadium
+            rail_pos = d1_w1_h2_pos + fc_1_2_d + fc_1_3_wi
+            shp_rail_sunk = fcfun.shp_stadium_dir (
+                                  length = rail_l,
+                                  radius = mbolt_head_r_tol,
+                                  height = mbolt_head_l,
+                                  fc_axis_l = axis_d,
+                                  fc_axis_h = axis_h_n,
+                                  ref_l = 2, #at the center of semicircle
+                                  ref_s = 1, # symmetrical on the short side
+                                  ref_h = 2,
+                                  xtr_h = 0,
+                                  xtr_nh = 1,
+                                  pos = rail_pos)
+            shp_rail = fcfun.shp_stadium_dir (
+                                  length = rail_l,
+                                  radius = mbolt_r_tol,
+                                  height = tot_h,
+                                  fc_axis_l = axis_d,
+                                  fc_axis_h = axis_h_n,
+                                  ref_l = 2,
+                                  ref_s = 1,
+                                  ref_h = 2,
+                                  xtr_h = 1,
+                                  xtr_nh = 0,
+                                  pos = rail_pos)
+
+                                  
+                                  
+            holes.append(shp_rail)
+            holes.append(shp_rail_sunk)
+
+        shp_holes = fcfun.fuseshplist(holes)
+        shp_holder = shp_box.cut(shp_holes)
+           
+        self.shp = shp_holder
+
+        if wfco == 1:
+            # a freeCAD object is created
+            fco = doc.addObject("Part::Feature", name )
+            fco.Shape = self.shp
+            self.fco = fco
+
+    def color (self, color = (1,1,1)):
+        if self.wfco == 1:
+            self.fco.ViewObject.ShapeColor = color
+        else:
+            logger.debug("Object with no fco")
+
+    # exports the shape to STL format
+    def export_stl (self, name = ""):
+        if not name:
+            name = self.name
+        stlPath = filepath + stl_dir
+        stlFileName = stlPath + name + ".stl"
+        self.fco.Shape.exportStl(stlFileName)
+
+
+
+
+#doc = FreeCAD.newDocument()
+#h_estp = SimpleEndstopHolder(
+#                 d_endstop = kcomp.ENDSTOP_A,
+#                 rail_l = 25,
+#                 base_h = 4.,
+#                 h = 0,
+#                 holder_out = 2.,
+#                 #csunk = 1,
+#                 mbolt_d = 3.,
+#                 endstop_nut_dist = 2.,
+#                 min_d = 1,
+#                 fc_axis_d = VX,
+#                 fc_axis_w = V0,
+#                 fc_axis_h = VZ,
+#                 ref_d = 2,
+#                 ref_w = 1,
+#                 ref_h = 1,
+#                 pos = V0,
+#                 wfco = 1,
+#                 name = 'simple_enstop_holder')
+
 
 # ----------- thin linear bearing housing with one rail to be attached
 
@@ -2196,7 +2955,7 @@ class ThinLinBearHouse (object):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + stl_dir
         stlFileName_top = stlPath + name + "_top" + ".stl"
         # any of these options are valid
         #Mesh.export([self.fco_top], stlFileName_top)
@@ -2464,7 +3223,8 @@ class LinBearHouse (object):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        #stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + stl_dir
         stlFileName_top = stlPath + name + "_top" + ".stl"
         # any of these options are valid
         #Mesh.export([self.fco_top], stlFileName_top)
@@ -2474,8 +3234,8 @@ class LinBearHouse (object):
         self.fco_bot.Shape.exportStl(stlFileName_bot)
 
 
-#doc = FreeCAD.newDocument()
-#LinBearHouse (kcomp.SCUU[10])
+doc = FreeCAD.newDocument()
+lin12 = LinBearHouse (kcomp.SCUU[12])
 #LinBearHouse (kcomp.SCUU_Pr[10])
 
 
@@ -2953,7 +3713,7 @@ class ThinLinBearHouseAsim (object):
         #filepath = os.getcwd()
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + stl_dir
         stlFileName_top = stlPath + name + "_top" + ".stl"
         self.fco_top.Shape.exportStl(stlFileName_top)
         stlFileName_bot = stlPath + name + "_bot" + ".stl"
@@ -3031,10 +3791,12 @@ class NemaMotorHolder (object):
                   wall_thick = 4.,
                   motor_thick = 4.,
                   reinf_thick = 4.,
-                  motor_max_h = 5.,
                   motor_min_h =10.,
+                  motor_max_h =20.,
+                  rail = 1, # if there is a rail or not at the profile side
                   motor_xtr_space = 2., # counting on one side
                   bolt_wall_d = 4.,
+                  bolt_wall_sep = 30., # optional
                   chmf_r = 1.,
                   fc_axis_h = VZ,
                   fc_axis_n = VX,
@@ -3045,34 +3807,59 @@ class NemaMotorHolder (object):
                   wfco = 1,
                   name = 'nema_holder'):
 
-               doc = FreeCAD.ActiveDocument
+        doc = FreeCAD.ActiveDocument
 
         # normalize de axis
         axis_h = DraftVecUtils.scaleTo(fc_axis_h,1)
         axis_n = DraftVecUtils.scaleTo(fc_axis_n,1)
-        #axis_p = axis_h.cross(axis_n) #perpendicular
+        axis_p = axis_h.cross(axis_n) #perpendicular
         axis_n_n = axis_n.negative()
         axis_h_n = axis_h.negative()
 
-        motor_w = kcomp.NEMA_W[nema_size]
-
         self.axis_h = axis_h
         self.axis_n = axis_n
-        self.pos = pos
+        self.axis_p = axis_p
+        # best axis to print:
+        self.axis_print = axis_h_n
 
-        bolthead_l = kcomp.D912[bolt_wall_d]['head_l']
+        self.pos = pos
+        self.name = name
+
+        motor_w = kcomp.NEMA_W[nema_size]
+        motor_bolt_sep = kcomp.NEMA_BOLT_SEP[nema_size]
+        motor_bolt_d = kcomp.NEMA_BOLT_D[nema_size]
+
+        boltwallshank_r_tol = kcomp.D912[bolt_wall_d]['shank_r_tol']
+        boltwallhead_l = kcomp.D912[bolt_wall_d]['head_l']
+        boltwallhead_r = kcomp.D912[bolt_wall_d]['head_r']
         washer_thick = kcomp.WASH_D125_T[bolt_wall_d]
+
+        # calculation of the bolt wall separation
+        max_bolt_wall_sep = motor_w - 2 * boltwallhead_r
+      
+        if bolt_wall_sep == 0:
+            bolt_wall_sep = max_bolt_wall_sep
+        elif bolt_wall_sep > max_bolt_wall_sep:
+            logger.debug('bolt wall separtion too large: ' + str(bolt_wall_sep))
+            bolt_wall_sep = max_bolt_wall_sep
+            logger.debug('taking larges value: ' + str(bolt_wall_sep))
+        elif bolt_wall_sep <  4 * boltwallhead_r:
+            logger.debug('bolt wall separtion too short: ' + str(bolt_wall_sep))
+            bolt_wall_sep = max_bolt_wall_sep
+            logger.debug('taking larges value: ' + str(bolt_wall_sep))
+        # else: the given separation is good
 
         # making the big box that will contain everything and will be cut
         tot_h = motor_thick + motor_max_h + 2 * bolt_wall_d
         tot_w = 2* reinf_thick + motor_w + 2 * motor_xtr_space
         tot_d = (   wall_thick + motor_w + motor_xtr_space
-                  + bolthead_l + washer_thick)
+                  + boltwallhead_l + washer_thick)
+
 
         # getting the offset of the reference
         # distance of the motor axis to de wall
         motax2wall_dist = (wall_thick + motor_w/2. + motor_xtr_space
-                               + bolthead_l + washer_thick)
+                               + boltwallhead_l + washer_thick)
         if ref_axis == 1:
             ref2motax = V0  #point 1
             ref2motaxwall = DraftVecUtils.scale(axis_n_n, motax2wall_dist) 
@@ -3080,28 +3867,134 @@ class NemaMotorHolder (object):
             ref2motax = DraftVecUtils.scale(axis_n, motax2wall_dist)
             ref2motaxwall = V0 # point 2
 
+        motax_pos = pos + ref2motax
+        motaxwall_pos = pos + ref2motaxwall
+
         # point centered on the symmetrical plane, on top of axis_h and
         # on the wall (pint 3)
         ref2topwallcent = (  ref2motaxwall
                              + DraftVecUtils.scale(axis_h, motor_thick))
         topwallcent_pos = pos + ref2topwallcent
 
-        # make the whole box:
+        # atributes with dimensions, distances and positions
+        self.tot_h = tot_h
+        self.tot_w = tot_w
+        self.tot_d = tot_d
+        self.ref2motax = ref2motax
+        self.ref2motaxwall = ref2motaxwall
+        self.ref2topwallcent = ref2topwallcent
+        self.motax_pos = motax_pos
+        self.motaxwall_pos = motaxwall_pos
+        self.topwallcent_pos = topwallcent_pos
+
+        # make the whole box, extra height and depth to cut all the way
+        # back and down:
         shp_box = fcfun.shp_box_dir (box_w = tot_w,
                                      box_d = tot_d,
                                      box_h = tot_h,
                                      fc_axis_h = axis_h_n,
                                      fc_axis_d = axis_n,
                                      cw=1, cd=0, ch=0, pos = topwallcent_pos)
+        # little chamfer at the corners, if fillet there are some problems
+        shp_box = fcfun.shp_filletchamfer_dir(shp_box, axis_h,
+                                              fillet=0,
+                                              radius = chmf_r)
+        doc.recompute()
+        shp_box = shp_box.removeSplitter()
 
         # chamfer of the box to make a 'triangular' reinforcement
         chmf_reinf_r = min(tot_d- wall_thick, tot_h-motor_thick)
-        shp_box = fcfun.shp_filletchamfer_dir(shp_box, axis_p, fillet=0,
+        # look for the point:
+        chmf_pos = (  topwallcent_pos
+                          + DraftVecUtils.scale(axis_h_n, tot_h)
+                          + DraftVecUtils.scale(axis_n, tot_d))
+        shp_box = fcfun.shp_filletchamfer_dirpt(shp_box, axis_p,
+                                              fc_pt =chmf_pos,
+                                              fillet=0,
                                               radius = chmf_reinf_r)
         doc.recompute()
- 
 
-        shp_box = shp_motorholder
+        # holes:
+        holes = []
+        motaxinwall_pos = (motaxwall_pos
+                           + DraftVecUtils.scale(axis_n, wall_thick))
+        # the space for the motor
+        shp_motor = fcfun.shp_box_dir (box_w = motor_w +  2 * motor_xtr_space,
+                                       box_d = tot_d + chmf_r,
+                                       box_h = tot_h,
+                                       fc_axis_h = axis_h_n,
+                                       fc_axis_d = axis_n,
+                                       cw=1, cd=0, ch=0,
+                                       pos = motaxinwall_pos)
+
+        shp_motor = fcfun.shp_filletchamfer_dir(shp_motor, fc_axis=axis_h,
+                                                fillet=0, radius=chmf_r)
+        doc.recompute()
+        holes.append(shp_motor)
+
+        # central circle of the motor
+        shp_hole = fcfun.shp_cylcenxtr(r=(motor_bolt_sep - motor_bolt_d)/2.,
+                                       h = motor_thick,
+                                       normal = axis_h,
+                                       ch = 0,
+                                       xtr_top = 1,
+                                       xtr_bot = 1,
+                                       pos = motax_pos)
+        holes.append(shp_hole)
+
+        # motor bolt holes
+        for add_n in (DraftVecUtils.scale(axis_n, motor_bolt_sep/2.),
+                      DraftVecUtils.scale(axis_n,-motor_bolt_sep/2.)):
+            for add_p in (DraftVecUtils.scale(axis_p, motor_bolt_sep/2.),
+                      DraftVecUtils.scale(axis_p,-motor_bolt_sep/2.)):
+                hole_pos = motax_pos + add_n + add_p
+                shp_hole = fcfun.shp_cylcenxtr( r = motor_bolt_d/2.+TOL,
+                                                h = motor_thick,
+                                                normal = axis_h,
+                                                ch = 0,
+                                                xtr_top = 1,
+                                                xtr_bot = 1,
+                                                pos = hole_pos)
+                holes.append(shp_hole)
+
+        # rail holes. To mount the motor holder to a profile or whatever
+        for add_p in (DraftVecUtils.scale(axis_p, motor_bolt_sep/2.),
+                      DraftVecUtils.scale(axis_p,-motor_bolt_sep/2.)):
+            # hole for the rails
+            hole_pos = (motaxwall_pos + add_p
+                        + DraftVecUtils.scale(axis_h_n, motor_min_h))
+            if rail == 1:
+                shp_hole = fcfun.shp_box_dir_xtr(
+                                       box_w = boltwallshank_r_tol * 2.,
+                                       box_d = wall_thick,
+                                       box_h = motor_max_h - motor_min_h,
+                                       fc_axis_h = axis_h_n,
+                                       fc_axis_d = axis_n,
+                                       cw=1, cd=0, ch=0,
+                                       xtr_d =1, xtr_nd=1, #to cut
+                                       pos = hole_pos)
+                holes.append(shp_hole)
+            # hole for the ending of the rails (semicircles)
+            for add_h in (DraftVecUtils.scale(axis_h_n, motor_min_h),
+                          DraftVecUtils.scale(axis_h_n, motor_max_h)):
+                hole_pos = motaxwall_pos + add_h + add_p
+                shp_hole = fcfun.shp_cylcenxtr( r = boltwallshank_r_tol,
+                                                h = wall_thick,
+                                                normal = axis_n,
+                                                ch = 0,
+                                                xtr_top = 1,
+                                                xtr_bot = 1,
+                                                pos = hole_pos)
+                holes.append(shp_hole)
+
+        
+                
+
+        shp_holes = fcfun.fuseshplist(holes)
+
+        shp_motorholder = shp_box.cut(shp_holes)
+        
+        self.shp = shp_motorholder
         if wfco == 1:
             # a freeCAD object is created
             fco_motorholder = doc.addObject("Part::Feature", name )
@@ -3110,26 +4003,105 @@ class NemaMotorHolder (object):
 
 
 
+    def color (self, color = (1,1,1)):
+        if self.wfco == 1:
+            self.fco.ViewObject.ShapeColor = color
+        else:
+            logger.debug("Object with no fco")
 
-doc = FreeCAD.newDocument()
-NemaMotorHolder ( self,
-                  nema_size = 17,
-                  wall_thick = 4.,
-                  motor_thick = 4.,
-                  reinf_thick = 4.,
-                  motor_max_h = 5.,
-                  motor_min_h =10.,
-                  motor_xtr_space = 2., # counting on one side
-                  bolt_wall_d = 4.,
-                  chmf_r = 1.,
-                  fc_axis_h = VZ,
-                  fc_axis_n = VX,
-                  #fc_axis_p = VY,
-                  ref_axis = 1, 
-                  #ref_bolt = 0,
-                  pos = V0,
-                  wfco = 1,
-                  name = 'nema_holder'):
+    # exports the shape to STL format
+    def export_stl (self, name = ""):
+        # ------------------------------------------
+        # check how to do this
+        axis_up = self.axis_print
+        rotation = DraftVecUtils.getRotation(axis_up, VZ)
+        if (DraftVecUtils.equals(axis_up, VZN)):
+            #we have to flip it, but rotation doesnt get it done:
+            rotation = FreeCAD.Rotation(VX,180)
+            
+        shp = self.shp
+        #shp.Placement.Rotation = rotation
+        #Part.show(shp)
+        shp.Placement.Base = self.topwallcent_pos.negative()
+        Part.show(shp)
+        shp.Placement.Rotation = rotation
+        Part.show(shp)
+        
+        if not name:
+            name = self.name
+        stlPath = filepath + "/stl/"
+        stlFileName = stlPath + name + ".stl"
+        print (" %s", stlFileName)
+        self.shp.exportStl(stlFileName)
+        #self.fco.Shape.exportStl(stlFileName)
+
+
+
+
+
+#doc = FreeCAD.newDocument()
+#h_nema = NemaMotorHolder ( 
+#                  nema_size = 17,
+#                  wall_thick = 5.,
+#                  motor_thick = 4.,
+#                  reinf_thick = 4.,
+#                  motor_min_h =8.,
+#                  motor_max_h = 12.,
+#                  motor_xtr_space = 2., # counting on one side
+#                  bolt_wall_d = 4.,
+#                  chmf_r = 1.,
+#                  fc_axis_h = VZN,#FreeCAD.Vector(1,1,0),
+#                  fc_axis_n = VX, #FreeCAD.Vector(1,-1,0),
+#                  #fc_axis_p = VY,
+#                  ref_axis = 1, 
+#                  #ref_bolt = 0,
+#                  pos = V0, # FreeCAD.Vector(3,2,5),
+#                  wfco = 1,
+#                  name = 'nema_holder')
+
+#doc = FreeCAD.newDocument()
+#h_nema = NemaMotorHolder ( 
+#                  nema_size = 17,
+#                  wall_thick = 5.,
+#                  motor_thick = 4.,
+#                  reinf_thick = 4.,
+#                  motor_min_h =8.,
+#                  motor_max_h = 33.,
+#                  rail = 0,
+#                  motor_xtr_space = 2., # counting on one side
+#                  bolt_wall_d = 3.,
+#                  chmf_r = 1.,
+#                  fc_axis_h = VZN,#FreeCAD.Vector(1,1,0),
+#                  fc_axis_n = VX, #FreeCAD.Vector(1,-1,0),
+#                  #fc_axis_p = VY,
+#                  ref_axis = 1, 
+#                  #ref_bolt = 0,
+#                  pos = V0, # FreeCAD.Vector(3,2,5),
+#                  wfco = 1,
+#                  name = 'nema_holder')
+
+
+# a porras:
+#doc = FreeCAD.newDocument()
+#h_nema = NemaMotorHolder ( 
+#                  nema_size = 17,
+#                  wall_thick = 5.,
+#                  motor_thick = 3.,
+#                  reinf_thick = 4.,
+#                  motor_min_h =8.,
+#                  motor_max_h = 43.,
+#                  rail = 1,
+#                  motor_xtr_space = 2., # counting on one side
+#                  bolt_wall_d = 3.,
+#                  chmf_r = 1.,
+#                  fc_axis_h = VZN,#FreeCAD.Vector(1,1,0),
+#                  fc_axis_n = VX, #FreeCAD.Vector(1,-1,0),
+#                  #fc_axis_p = VY,
+#                  ref_axis = 1, 
+#                  #ref_bolt = 0,
+#                  pos = V0, # FreeCAD.Vector(3,2,5),
+#                  wfco = 1,
+#                  name = 'nema_holder_52h')
 
 
 # ----------- Linear bearing housing 
@@ -3545,8 +4517,10 @@ class Plate3CageCubes (object):
     def export_stl (self, name = ""):
         if not name:
             name = self.name
-        stlPath = filepath + "/freecad/stl/"
+        #stlPath = filepath + "/freecad/stl/"
+        stlPath = filepath + stl_dir
         stlFileName = stlPath + name + ".stl"
+        print (stlFileName)
         self.fco.Shape.exportStl(stlFileName)
 
                            
@@ -3566,3 +4540,299 @@ class Plate3CageCubes (object):
 #                fc_sid_ax = VY,
 #                pos = V0,
 #                name = 'Plate3CageCubes')
+
+class hallestop_holder (object):
+
+
+    def __init__(self,
+                 stp_w = 21.,
+                 stp_h = 31.,
+                 base_thick = 4.,
+                 sup_thick = 4.,
+                 bolt_base_d = 3, #metric of the bolt 
+                 bolt_sup_d = 3, #metric of the bolt
+                 bolt_sup_sep = 17.,
+                 alu_rail_l = 5,
+                 stp_rail_l = 5,
+                 xtr_bolt_head = 3,
+                 xtr_bolt_head_d = 0,
+                 reinforce = 1,
+                 base_min_dist = 1,
+                 fc_perp_ax = VZ,
+                 fc_lin_ax = VX,
+                 pos = V0,
+                 wfco=1,
+                 name = 'holder'):
+
+        doc = FreeCAD.ActiveDocument
+        self.name = name
+        # bolt lin dimensions
+        boltli_dict = kcomp.D912[bolt_base_d]
+        boltlihead_r = boltli_dict['head_r']
+        boltlihead_r_tol = boltli_dict['head_r_tol']
+        boltlishank_r_tol = boltli_dict['shank_r_tol']
+        boltlihead_l = boltli_dict['head_l']
+        if bolt_sup_d == 0:
+            bolt_sup_d = bolt_lin_d
+        boltpe_dict = kcomp.D912[bolt_sup_d]
+        boltpehead_r = boltpe_dict['head_r']
+        boltpehead_r_tol = boltpe_dict['head_r_tol']
+        boltpeshank_r_tol = boltpe_dict['shank_r_tol']
+        boltpehead_l = boltpe_dict['head_l']
+
+        boltmaxhead_r = max(boltlihead_r, boltpehead_r)
+        boltmaxhead_r_tol = max(boltlihead_r_tol, boltpehead_r_tol)
+
+        # normalize axis, just in case:
+        axis_perp = DraftVecUtils.scaleTo(fc_perp_ax,1)
+        axis_lin = DraftVecUtils.scaleTo(fc_lin_ax,1)
+        axis_perp_neg = axis_perp.negative()
+        axis_lin_neg = axis_lin.negative()
+        axis_wid   = axis_perp.cross(axis_lin)
+
+        #Calculate the length of the sup_l
+        #         sup_thick :boltpehead_l
+        #                  :  : : boltlihead_r
+        #              ....:__: :  :
+        #              :   |  |_   :
+        # sup_h        +   |  |_| _:_
+        #              :   |  |__|___|___ 
+        #              :...|_____________|
+        #                  :.......:
+        #                 bolt1li_dist = sup_thick+boltpehead_l+boltlihead_r
+        #                          :  :  :
+        #                        2 x boltlihead_r
+        #                  :.............:
+        #                      + sup_l
+
+        if base_min_dist == 0:
+            bolt1li_dist = (  sup_thick + boltpehead_l + boltlihead_r_tol
+                        + xtr_bolt_head )
+            sup_l = bolt1li_dist + 2 * boltlihead_r + alu_rail_l
+        else: 
+            bolt1li_dist = ( sup_thick + boltlihead_r_tol
+                        + xtr_bolt_head +kcomp.TOL)
+            sup_l = bolt1li_dist + 0.8*boltlihead_r + alu_rail_l
+
+        tot_w = max(stp_w + 2 * boltpehead_r, 8 * boltlihead_r) + 2 * reinforce
+
+
+        #              ....:__: :  :           _________
+        #              :   |  |_   :          ||       ||
+        #   su_h       +   |  |_| _:_         ||   O   ||
+        #              :   |  |__|___|___     ||_______||
+        #              :...|_____________|    |___:_:___|......axis_wid
+        #                  :.............:    :.........:
+        #                    + sup_l             + tot_w
+
+        sup_h = 2*boltpehead_r + base_thick + stp_rail_l
+
+        shp_box = fcfun.shp_box_dir (box_w = tot_w,
+                                     box_d = sup_l,
+                                     box_h = sup_h,
+                                     fc_axis_h = axis_perp,
+                                     fc_axis_d = axis_lin,
+                                     cw = 1, cd = 0, ch = 0,
+                                     pos = pos)
+
+        chmf_out_r = min(sup_l-sup_thick, sup_h-base_thick)
+
+        chmf_out_pos = (   pos + DraftVecUtils.scaleTo(axis_lin, sup_l)
+                         + DraftVecUtils.scaleTo(axis_perp, sup_h))
+
+        shp_box = fcfun.shp_filletchamfer_dirpt(shp_box,
+                                                   fc_axis = axis_wid,
+                                                   fc_pt = chmf_out_pos,
+                                                   fillet = 0,
+                                                   radius = chmf_out_r)
+
+        #                                       inside_w
+        #                                       ...+...
+        #              ....:__: :  :           :_______:
+        #              :   |  |_   :          ||       ||
+        #        sup_h +   |  |_| _:_         ||   O   ||
+        #              :   |  |__|___|___     ||_______||
+        #              :...|_____________|    |___:_:___|
+        #                  :.............:    :.........:
+        #                    + sup_l             + tot_w
+        # cut the box inside
+        # Inside width
+        # add one, to have it a minimum of one mm
+        if (reinforce > 0 and
+           (tot_w > 2*(boltmaxhead_r + kcomp.TOL) + 1 )):
+            inside_w =  tot_w - 2 * reinforce
+            #print ("inside width " + str(inside_w))
+        else:
+            #no space for reinforcement, or reinforcement 0
+            inside_w = tot_w + 2 # +2 to make the cut
+
+        # chamfer of the inside box
+        chmf_in_r = boltpehead_r
+        logger.debug ("chamfer radius" + str(chmf_in_r))
+
+        # inside box:
+        insbox_pos = ( pos + DraftVecUtils.scale(axis_lin,sup_thick)
+                           + DraftVecUtils.scale(axis_perp,base_thick))
+        shp_insbox = fcfun.shp_box_dir (box_w = inside_w,
+                                     box_d = sup_l,
+                                     box_h = sup_h,
+                                     fc_axis_h = axis_perp,
+                                     fc_axis_d = axis_lin,
+                                     cw = 1, cd = 0, ch = 0,
+                                     pos = insbox_pos)
+        if chmf_in_r > 0 :
+            shp_insbox = fcfun.shp_filletchamfer_dirpt(shp_insbox,
+                                                     fc_axis = axis_wid,
+                                                     fc_pt = insbox_pos,
+                                                     fillet = 0,
+                                                     radius = chmf_in_r)
+        #Part.show(shp_insbox)
+        shp_box = shp_box.cut(shp_insbox)
+
+        #pos_boltpe =  pos + DraftVecUtils.scale(axis_perp,sup_h/2.) 
+        #shp_boltpe= fcfun.shp_cylcenxtr(r=boltshank_r_tol,
+        #                    h=brack_thick,
+        #                    normal = axis_lin,
+        #                    ch = 0, xtr_top = 1, xtr_bot=1,
+        #                    pos = pos_boltpe)
+
+        boltholes = []
+        for pos_wi in [ DraftVecUtils.scale(axis_wid,-bolt_sup_sep/2.),
+                        DraftVecUtils.scale(axis_wid,bolt_sup_sep/2.)]:
+            pos_boltpe =  (pos
+                     + DraftVecUtils.scale(axis_perp,
+                                           base_thick +(sup_h-base_thick)/2.)
+                     + DraftVecUtils.scale(axis_lin,sup_thick+boltpehead_l)
+                     + pos_wi)
+            shp_boltpe = fcfun.shp_2stadium_dir(
+                               length = stp_rail_l,
+                               r_s = boltpeshank_r_tol,
+                               #r_l =  boltpehead_r_tol + xtr_bolt_head_d/2.,
+                               r_l =  boltpehead_r + xtr_bolt_head_d/2.,
+                               h_tot = sup_thick + boltpehead_l,
+                               h_rl = boltpehead_l,
+                               fc_axis_h = axis_lin_neg,
+                               fc_axis_l = axis_perp,
+                               ref_l = 1, #ref on the circle center
+                               rl_h0 = 1, #bolt head is on pos
+                               xtr_h = 1,
+                               xtr_nh = 1,
+                               pos = pos_boltpe)
+            boltholes.append(shp_boltpe)
+
+        pos_boltli =  pos + DraftVecUtils.scale(axis_lin,bolt1li_dist) 
+        #pos_wi_sca = tot_w/2. -2*boltlihead_r - reinforce
+        pos_wi_sca = bolt_sup_sep/2.
+        for pos_wi in  [ DraftVecUtils.scale(axis_wid,-pos_wi_sca),
+                        DraftVecUtils.scale(axis_wid,pos_wi_sca)]:
+            # 2 Stadium to cut the chamfer if it is too big
+            pos_boltli_top = (pos_boltli
+                         + DraftVecUtils.scale(axis_perp, sup_h) 
+                         + pos_wi)
+            shp_railli = fcfun.shp_2stadium_dir (length = alu_rail_l,
+                               r_s = boltlishank_r_tol,
+                               r_l = boltlihead_r_tol + kcomp.TOL/2., #extra TOL
+                               h_tot = sup_h,
+                               h_rl = sup_h-base_thick,
+                               fc_axis_h = axis_perp_neg,
+                               fc_axis_l = axis_lin,
+                               ref_l = 2, #ref on the circle center
+                               rl_h0 = 1, #bolt head is on pos
+                               xtr_h = 1,
+                               xtr_nh = 1,
+                               pos = pos_boltli_top)
+            boltholes.append(shp_railli)
+
+        shp_boltfuse = fcfun.fuseshplist(boltholes)
+
+        shp_bracket = shp_box.cut(shp_boltfuse)
+        doc.recompute()
+        shp_bracket =shp_bracket.removeSplitter()
+        doc.recompute()
+
+        self.shp = shp_bracket
+        self.wfco = wfco
+        if wfco == 1:
+            # a freeCAD object is created
+            fco_bracket = doc.addObject("Part::Feature", name )
+            fco_bracket.Shape = shp_bracket
+            self.fco = fco_bracket
+
+    def color (self, color = (1,1,1)):
+        if self.wfco == 1:
+            self.fco.ViewObject.ShapeColor = color
+        else:
+            logger.debug("Bracket object with no fco")
+        
+    # exports the shape into stl format
+    def export_stl (self, name = ""):
+        #filepath = os.getcwd()
+        if not name:
+            name = self.name
+        stlPath = filepath + "/stl/"
+        stlFileName = stlPath + name + ".stl"
+        self.shp.exportStl(stlFileName)
+       
+#doc = FreeCAD.newDocument()
+
+#hs = hallestop_holder ( 
+#                 stp_w = 21.,
+#                 stp_h = 31.,
+#                 base_thick = 4.,
+#                 sup_thick = 5.,
+#                 bolt_base_d = 3, #metric of the bolt 
+#                 bolt_sup_d = 3, #metric of the bolt
+#                 bolt_sup_sep = 17.,
+#                 alu_rail_l = 10,
+#                 stp_rail_l = 20,
+#                 xtr_bolt_head = 0,
+#                 xtr_bolt_head_d = 0,
+#                 base_min_dist = 1,
+#                 reinforce = 4,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'holder')
+
+
+#hs = hallestop_holder ( 
+#                 stp_w = 21.,
+#                 stp_h = 31.,
+#                 base_thick = 3.,
+#                 sup_thick = 3.,
+#                 bolt_base_d = 3, #metric of the bolt 
+#                 bolt_sup_d = 3, #metric of the bolt
+#                 bolt_sup_sep = 17.,
+#                 alu_rail_l = 7,
+#                 stp_rail_l = 5,
+#                 xtr_bolt_head = 0,
+#                 xtr_bolt_head_d = 0,
+#                 base_min_dist = 1,
+#                 reinforce = 2,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'holder')
+
+
+#hs = hallestop_holder ( 
+#                 stp_w = 21.,
+#                 stp_h = 31.,
+#                 base_thick = 3.,
+#                 sup_thick = 3.,
+#                 bolt_base_d = 3, #metric of the bolt 
+#                 bolt_sup_d = 3, #metric of the bolt
+#                 bolt_sup_sep = 17.,
+#                 alu_rail_l = 10,
+#                 stp_rail_l = 10,
+#                 xtr_bolt_head = 0,
+#                 xtr_bolt_head_d = 0,
+#                 base_min_dist = 1,
+#                 reinforce = 4,
+#                 fc_perp_ax = VZ,
+#                 fc_lin_ax = VX,
+#                 pos = V0,
+#                 wfco=1,
+#                 name = 'holder')

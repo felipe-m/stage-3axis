@@ -92,24 +92,33 @@ extrud_sep = 40.0
 D912_HEAD_D = {3: 5.5, 4: 7.0, 5: 8.5, 6:10.0, 8:13.0, 10:18.0} 
 # length: the index is the M, i.e: M3, M4, ..., the value is the length of the head of the bolt
 # well, it is the same as the M, never mind...
-D912_HEAD_L =  {3: 3.0,4: 4.0, 5: 5.0,  6:6.0, 8:8.0,  10:10.0} 
+D912_HEAD_L =  {3: 3.0, 4: 4.0, 5: 5.0,  6:6.0, 8:8.0,  10:10.0} 
 
 M3_HEAD_R = D912_HEAD_D[3] / 2.0
-M3_HEAD_L = D912_HEAD_L[3] + TOL
+M3_HEAD_L = D912_HEAD_L[3]
+M3_HEAD_L_TOL = D912_HEAD_L[3] + TOL
 M3_HEAD_R_TOL = M3_HEAD_R + TOL/2.0 # smaller TOL, because it's small
 M3_SHANK_R_TOL = 3 / 2.0 + TOL/2.0
 
 M4_HEAD_R = D912_HEAD_D[4] / 2.0
-M4_HEAD_L = D912_HEAD_L[4] + TOL
-M4_HEAD_R_TOL = M3_HEAD_R + TOL/2.0 # smaller TOL, because it's small
-M4_SHANK_R_TOL = 3 / 2.0 + TOL/2.0
+M4_HEAD_L = D912_HEAD_L[4]
+M4_HEAD_L_TOL = D912_HEAD_L[4] + TOL
+M4_HEAD_R_TOL = M4_HEAD_R + TOL/2.0 # smaller TOL, because it's small
+M4_SHANK_R_TOL = 4 / 2.0 + TOL/2.0
+
+M6_HEAD_R = D912_HEAD_D[6] / 2.0
+M6_HEAD_L = D912_HEAD_L[6]
+M6_HEAD_L_TOL = D912_HEAD_L[6] + TOL
+M6_HEAD_R_TOL = M6_HEAD_R + TOL/2.0 # smaller TOL, because it's small
+M6_SHANK_R_TOL = 6 / 2.0 + TOL/2.0
 
 D912_M3 = {
             'd': 3.,  # diameter of the shank
             'shank_r_tol' :  3 / 2. + TOL/2.,
             'head_r' :  M3_HEAD_R,
             'head_r_tol' :  M3_HEAD_R_TOL,
-            'head_l' :  M3_HEAD_L
+            'head_l' :  M3_HEAD_L,
+            'head_l_tol' :  M3_HEAD_L_TOL
            }
 
 D912_M4 = {
@@ -117,11 +126,33 @@ D912_M4 = {
             'shank_r_tol' :  4 / 2. + TOL/2.,
             'head_r' :  M4_HEAD_R,
             'head_r_tol' :  M4_HEAD_R_TOL,
-            'head_l' :  M4_HEAD_L
+            'head_l' :  M4_HEAD_L,
+            'head_l_tol' :  M4_HEAD_L_TOL
            }
 
+D912_M5 = {
+            'd': 5.,  # diameter of the shank
+            'shank_r_tol' :  5 / 2. + TOL/2.,
+            'head_r' :      D912_HEAD_D[5]/2.,
+            'head_r_tol' :  D912_HEAD_D[5]/2. + TOL/2.,
+            'head_l' :      D912_HEAD_L[5],
+            'head_l_tol' :  D912_HEAD_L[5] + TOL
+           }
+
+D912_M6 = {
+            'd': 6.,  # diameter of the shank
+            'shank_r_tol' :  6 / 2. + TOL/2.,
+            'head_r'      :  M6_HEAD_R,
+            'head_r_tol'  :  M6_HEAD_R_TOL,
+            'head_l'      :  M6_HEAD_L,
+            'head_l_tol'  :  M6_HEAD_L_TOL
+           }
+
+
 D912 = { 3: D912_M3,
-         4: D912_M4 }
+         4: D912_M4,
+         5: D912_M5,
+         6: D912_M6 }
 
 
 # Nut DIN934 dimensions
@@ -134,11 +165,11 @@ D912 = { 3: D912_M3,
 """
 
 # the circumdiameter, min value
-NUT_D934_D = {3: 6.01, 4: 7.66, 5: 8.79}
+NUT_D934_D =  {2.5: 5.45, 3: 6.01, 4: 7.66, 5: 8.79}
 # double the apotheme, max value
-NUT_D934_2A = {3: 5.5, 4: 7.0,  5: 8.0}
+NUT_D934_2A = {2.5: 5.,   3: 5.5,  4: 7.0,  5: 8.0}
 # the heigth, max value
-NUT_D934_L  = {3: 2.4, 4: 3.2,  5: 4.0}
+NUT_D934_L  = {2.5: 2.,   3: 2.4,  4: 3.2,  5: 4.0}
 
 M3_NUT_R = NUT_D934_D[3] / 2.0
 M3_NUT_L = NUT_D934_L[3] + TOL
@@ -160,6 +191,30 @@ M4_NUT_L = NUT_D934_L[4] + TOL
 #  1.5 TOL because diameter values are minimum, so they may be larger
 M4_NUT_R_TOL = M4_NUT_R + 1.5*TOL
 
+D934_M3 = {
+            'in_d': 3.,  # inner diameter of the shank
+            'circ_d' : NUT_D934_D[3], #circumdiameter, min value
+            'circ_r' : NUT_D934_D[3]/2, #circumradius, min value
+            'circ_r_tol' : NUT_D934_D[3]/2 +  1.5*TOL , #circumradius + tol
+            'a2' :  NUT_D934_2A[3], #double of apotheme, max value
+            'l' :  NUT_D934_L[3], # height, max value
+            'l_tol' :  NUT_D934_L[3] + TOL #height with tolerance
+           }
+
+
+D934_M4 = {
+            'in_d': 4.,  # inner diameter of the shank
+            'circ_d' : NUT_D934_D[4], #circumdiameter, min value
+            'circ_r' : NUT_D934_D[4]/2, #circumradius, min value
+            'circ_r_tol' : NUT_D934_D[4]/2 +  1.5*TOL , #circumradius + tol
+            'a2' :  NUT_D934_2A[4], #double of apotheme, max value
+            'l' :  NUT_D934_L[4], # height, max value
+            'l_tol' :  NUT_D934_L[4] + TOL #height with tolerance
+           }
+
+D934 = { 3: D934_M3,
+         4: D934_M4}
+
 
 # tightening bolt with added tolerances:
 # Bolt's head radius
@@ -169,7 +224,7 @@ M4_NUT_R_TOL = M4_NUT_R + 1.5*TOL
 # Mounting bolt radius with added tolerance
 #mbolt_r = tol * sk_12['mbolt']/2
 
-# ------------- DIN 125 Washers (wide) -----------------------
+# ------------- DIN 125 Washers (small) -----------------------
 
 # The Index reffers to the Metric (M3,...
 # Inner Diameter (of the hole). Minimum diameter.
@@ -201,6 +256,22 @@ WASH_D125_T  = {
                   7:   1.6,
                   8:   1.6,
                  10:   2.0 }
+
+D125 = {} # empty dictionary
+for (k_di, di), (k_do, do), (k_t, t) in zip(WASH_D125_DI.iteritems(),
+                                            WASH_D125_DO.iteritems(),
+                                            WASH_D125_T.iteritems()):
+    # creation of a 2 dimension dictionary
+    # for example: 
+    #              D125[4]['do']
+    # will give the outer diameter of the M4 DIN125 washer
+
+    # k_di, k_do, k_t should have the same value in each iteration
+    # these 2 sentences are equivalent
+    #D125[k_di] = dict([('di',di),('do',do), ('t',t)])
+    D125[k_di] = dict(di=di, do=do, t=t)
+    if not ((k_di == k_do) and (k_di == k_t)):
+        logger.error('Keys are not ordered')
 
 
 # ------------- DIN 9021 Washers (wide) -----------------------
@@ -235,6 +306,22 @@ WASH_D9021_T  = {
                   7:   2.0,
                   8:   2.0,
                  10:   2.5 }
+
+D9021 = {} # empty dictionary
+for (k_di, di), (k_do, do), (k_t, t) in zip(WASH_D9021_DI.iteritems(),
+                                            WASH_D9021_DO.iteritems(),
+                                            WASH_D9021_T.iteritems()):
+    # creation of a 2 dimension dictionary
+    # for example: 
+    #              D9021[4]['do']
+    # will give the outer diameter of the M4 DIN9021 washer
+
+    # k_di, k_do, k_t should have the same value in each iteration
+    # these 2 sentences are equivalent
+    #D9021[k_di] = dict([('di',di),('do',do), ('t',t)])
+    D9021[k_di] = dict(di=di, do=do, t=t)
+    if not ((k_di == k_do) and (k_di == k_t)):
+        logger.error('Keys are not ordered')
 
 # ------------- UNC Unified Coarse Thread
 # USA and Canada Standard Threads from Unified Thread Standard UTS
@@ -281,9 +368,26 @@ BEAR_DO = {
 BEAR_T  = {
             603:  5.0,
             673:  2.5,
-            608:  7.0,
-            624:  5.0
+            624:  5.0,
+            608:  7.0
           }
+
+BEARING = {} # empty dictionary
+for (k_ndi, di), (k_ndo, do), (k_nt, t) in zip(BEAR_DI.iteritems(),
+                                               BEAR_DO.iteritems(),
+                                               BEAR_T.iteritems()):
+    # creation of a 2 dimension dictionary
+    # for example: 
+    #              BEARING[603]['do']
+    # will give the outer diameter of the 603 bearing
+
+    # the keys: k_ndi, k_ndo, k_nt should have the same value in each iteration
+    # these 2 sentences are equivalent
+    #BEARING[k_ndi] = dict([('di',di),('do',do), ('t',t)])
+    BEARING[k_ndi] = dict(di=di, do=do, t=t)
+    if not ((k_ndi == k_ndo) and (k_ndi == k_nt)):
+        logger.error('Keys are not ordered')
+
 
 
 # to acces more easily to the dimensions of objects that are just
@@ -322,34 +426,96 @@ class HollowCyl(object):
         self.r_out  = self.d_out/2.   # outer radius
 
 # ----------------------------- Idler pulley components --------
+# this may be an error, it is not a name list, is a objects list
 # this is a name list from botton to top that shows the component
 # order to make an idler pulley out of washers and bearings
 
+"""
+idler pulley with the one for the bolt
+
+     with dots goes the bolt head, not in the group
+             .....
+           _:_____:_        bolt head
+       ___|_________|___    regular washer
+      |_________________|   large washer
+          |_________|       regular washer
+          |         |       bearing
+          |_________|   
+       ___|_________|___    regular washer
+      |_________________|   large washer
+
+ 
+"""
+
+
 #idlepull_name_list = [
 idpull4_nlist = [
-            HollowCyl (part = 'washer', size = 6, kind= 'large'),
-            HollowCyl (part = 'washer', size = 4, kind= 'regular'),
-            HollowCyl (part = 'bearing', size = 624), # 624ZZ
-            HollowCyl (part = 'washer', size = 4, kind= 'regular'),
-            HollowCyl (part = 'washer', size = 6, kind= 'large'),
-            HollowCyl (part = 'washer', size = 4, kind= 'large')
+        HollowCyl (part = 'washer', size = 6, kind= 'large'), #bottom
+        HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+        HollowCyl (part = 'bearing', size = 624), # 624ZZ
+        HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+        HollowCyl (part = 'washer', size = 6, kind= 'large'),
+        HollowCyl (part = 'washer', size = 4, kind= 'large') #top for the bolt
               ]
 
 idpull3_nlist = [
-            HollowCyl (part = 'washer', size = 4, kind= 'large'),
-            HollowCyl (part = 'washer', size = 3, kind= 'regular'),
-            HollowCyl (part = 'bearing', size = 603), # 603ZZ
-            HollowCyl (part = 'washer', size = 3, kind= 'regular'),
-            HollowCyl (part = 'washer', size = 4, kind= 'large'),
-            HollowCyl (part = 'washer', size = 3, kind= 'large')
-              ]
+        HollowCyl (part = 'washer', size = 4, kind= 'large'),
+        HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+        HollowCyl (part = 'bearing', size = 603), # 603ZZ
+        HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+        HollowCyl (part = 'washer', size = 4, kind= 'large'),
+        HollowCyl (part = 'washer', size = 3, kind= 'large') #top for the bolt
+           ]
 
 # idler pulley list will be different depending on the size of the bolt that
 # holds them
 
 idpull_dict = { 3: idpull3_nlist, 4: idpull4_nlist }
 
+"""
+idler pulley without the washer for the bolt because it is between a holder,
+The holder is in dots, not in the group
+            .......
+  ..........:.....:........     bolt head
+                           :    Holder for the pulley group
+  ....._________________...:
+      |_________________|       large washer
+          |_________|           regular washer
+          |         |           bearing
+          |_________|   
+       ___|_________|___        regular washer
+  ....|_________________|..     large washer
+                           :
+  .........................:    Holder for the pulley group
+            :.....:             nut
+              :.:               bolt shank
+ 
+So it is symmetrical from bottom to top
+"""
+
+idpull4min_list = [
+        HollowCyl (part = 'washer', size = 6, kind= 'large'), #bottom
+        HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+        HollowCyl (part = 'bearing', size = 624), # 624ZZ
+        HollowCyl (part = 'washer', size = 4, kind= 'regular'),
+        HollowCyl (part = 'washer', size = 6, kind= 'large'),
+        HollowCyl (part = 'washer', size = 4, kind= 'large') #top for the bolt
+              ]
+
+idpull3min_list = [
+        HollowCyl (part = 'washer', size = 4, kind= 'large'), #bottom
+        HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+        HollowCyl (part = 'bearing', size = 603), # 603ZZ
+        HollowCyl (part = 'washer', size = 3, kind= 'regular'),
+        HollowCyl (part = 'washer', size = 4, kind= 'large') # top
+           ]
+
+
+idpullmin_dict = { 3: idpull3min_list, 4: idpull4min_list }
+
+
 # from an idlepull_name_list, returns the maximum diameter of its bearings
+# check that it is the same as getmaxbeardiam in partgroup.py
 
 def get_idlepull_maxbear_d (idlepull_list):
     d_maxbear = 0
@@ -410,7 +576,7 @@ SC10UU = {
         }
 
 SC12UU = {
-        'L'          : 36.,
+        'L'          : 40., # they say 36, but it is too small
         'W'          : 42.,
         'H'          : 28.,
         'axis_h'     : 15.,
@@ -458,13 +624,13 @@ SC12UU_Pr = {
 SCUU = {
          8: SC8UU,
         10: SC10UU,
-        12: SC10UU
+        12: SC12UU
        }
 
 SCUU_Pr = {
          8: SC8UU_Pr,
         10: SC10UU_Pr,
-        12: SC10UU_Pr
+        12: SC12UU_Pr
        }
 
 
@@ -776,6 +942,13 @@ FLEXSC_RB_L = {
 # insquare: insq: the width of the inner square
 # indiam:   ind :the diameter of the inner hole
 
+ALU_MOTEDIS_30B8 = {'w'    : 30.,
+                    't'    : 2.5, # aprox
+                    'slot' : 8., 
+                    'insq' : 12, # 30 - 18
+                    'indiam' : 7.3 }
+
+
 ALU_MOTEDIS_20I5 = {'w'    : 20.,
                     't'    : 1.8, # aprox measured
                     'slot' : 5., 
@@ -811,7 +984,8 @@ ALU_PROF = {
               5: ALU_OPENBEAM_5,
              10: ALU_MAKERBEAM_10,
              15: ALU_MAKERBEAM_15,
-             20: ALU_MOTEDIS_20I5 }
+             20: ALU_MOTEDIS_20I5,
+             30: ALU_MOTEDIS_30B8 }
 
 # ------------------------ Linear Guides 
 
