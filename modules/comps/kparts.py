@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# -- Constants for the 3 axis stage
+# -- Constants for the parts to be printed
 # ----------------------------------------------------------------------------
 # -- (c) Felipe Machado
 # -- Area of Electronics. Rey Juan Carlos University (urjc.es)
@@ -43,3 +43,6 @@ TOL_BEARING_L = 1.0 # reduced, good
 MTOL = kcomp.TOL - 0.1 # reducing the tolrances, it was too tolerant :)
 MLTOL = kcomp.TOL - 0.05 # reducing the tolrances, it was too tolerant :)
 
+# default values for exporting to STL
+LIN_DEFL = 0.1
+ANG_DEFL = 0.523599 # 30 degree
